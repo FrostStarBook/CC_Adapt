@@ -37,7 +37,9 @@ fn main() {
 
     let first = *prefixes.at(0);
     let second = *prefixes.at(1);
+    let second = *prefixes.at(17);
 
     first.print();
     second.print();
+    'dungeonsSeeder.......'.print();
 }

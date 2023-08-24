@@ -22,7 +22,7 @@ fn main() {
     prefixes.append('Fallen');
     prefixes.append('Glowing');
     prefixes.append('Grim');
-    prefixes.append('Heaven"s');
+    prefixes.append('Heaven\'s');
     prefixes.append('Hidden');
     prefixes.append('Holy');
     prefixes.append('Howling');
@@ -31,7 +31,7 @@ fn main() {
     prefixes.append('Murky');
     prefixes.append('Outer');
     prefixes.append('Shimmering');
-    prefixes.append('Siren"s');
+    prefixes.append('Siren\'s');
     prefixes.append('Sunken');
     prefixes.append('Whispering');
 

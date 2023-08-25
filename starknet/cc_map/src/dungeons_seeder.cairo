@@ -1,6 +1,7 @@
 #[starknet::contract]
 mod dungeonsSeeder {
     use array::ArrayTrait;
+    use cc_map::utils::random::{random};
 
     #[storage]
     struct Storage {
@@ -180,4 +181,118 @@ mod dungeonsSeeder {
         self.PEOPLE.write(10, 'Viper\'s');
         self.PEOPLE.write(11, 'Woe\'s');
     }
+
+    fn get_seed(token_id: u64) -> u64 {
+        let seed = starknet::get_block_timestamp();
+        seed
+    }
+
+    fn get_size(seed: u64) -> u8 {
+        let size = random(seed << 4, 8, 25);
+        size
+    }
+
+    fn get_environment(seed: u64) -> u8 {
+        let rand = random(seed << 8, 0, 100);
+
+        if rand >= 70 {
+            0
+        } else if rand >= 45 {
+            1
+        } else if rand >= 25 {
+            2
+        } else if rand >= 13 {
+            3
+        } else if rand >= 4 {
+            4
+        } else {
+            5
+        }
+    }
+
+    fn get_name(seed: u64) -> (String, String, u8) {
+        let unique_seed = random(seed << 15, 0, 10000);
+
+        let (output, affinity, legendary) = if unique_seed < 17 {
+
+            // Unique name
+            let legendary = 1; 
+            let affinity = "none";
+            
+            let output = UNIQUE[unique_seed].to_string();
+        } else {
+            let mut name_parts = [String::new(); 5];
+            let base_seed = random(seed << 16, 0, 38);
+            if unique_seed <= 300 {
+                // Person's Name + Base Land
+                let legendary = 0;
+                let affinity = "none";
+
+                name_parts[0] = PEOPLE[random(seed << 23, 0, 12)].to_string();
+                name_parts[1] = " ".to_string(); 
+                name_parts[2] = LAND[base_seed].to_string();
+
+                let output = format!("{}{}", name_parts[0], name_parts[1], name_parts[2]);
+
+            } else if unique_seed <= 1800 {
+
+                // Prefix + Base Land + Suffix
+
+                let legendary = 0;
+
+                name_parts[0] = prefixes[random(seed << 42, 0, 29)].to_string();
+                name_parts[1] = " ".to_string();
+                name_parts[2] = LAND[base_seed].to_string(); 
+                name_parts[3] = " of ".to_string();
+
+                let affinity = SUFFIXES[random(seed << 27, 0, 59)].to_string();
+                name_parts[4] = affinity.clone();
+
+                let output = format!("{}{} {}{}", name_parts[0], name_parts[1], name_parts[2], name_parts[3], name_parts[4]);
+
+            } else if unique_seed <= 4000 {
+
+                // Base Land + Suffix
+
+                let legendary = 0;
+                let affinity = "none";
+
+                name_parts[0] = LAND[base_seed].to_string();
+                name_parts[1] = " of ".to_string();
+
+                let affinity = SUFFIXES[random(seed << 51, 0, 59)].to_string();
+                name_parts[2] = affinity;
+
+                let output = format!("{} {}", name_parts[0], name_parts[1], name_parts[2]);
+
+            } else if unique_seed <= 6500 {
+
+                // Prefix + Base Land
+
+                let legendary = 0; 
+                let affinity = "none";
+
+                name_parts[0] = prefixes[random(seed << 59, 0, 29)].to_string();
+                name_parts[1] = " ".to_string();
+                name_parts[2] = LAND[base_seed].to_string();
+
+                let output = format!("{} {}", name_parts[0], name_parts[1], name_parts[2]);
+
+            }else {
+                // Base Land
+                let legendary = 0;
+                let affinity = "none";
+                let output = LAND[base_seed].to_string();
+            }
+
+        }
+
+        (output, affinity, legendary)
+    }
+
+    fn random(input: u64, min: u64, max: u64) -> u64 {
+        let output = input % (max - min) + min;
+        output
+    }
+
 }

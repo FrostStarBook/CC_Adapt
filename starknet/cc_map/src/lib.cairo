@@ -1,2 +1,2 @@
 mod dungeons_render;
-mod dungeonsSeeder;
+mod dungeons_seeder;

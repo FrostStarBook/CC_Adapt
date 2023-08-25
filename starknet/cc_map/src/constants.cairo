@@ -12,11 +12,11 @@ mod Colors {
     const FIVE: felt252 = 'F3D899';
     const SIX: felt252 = '3C2A1A';
     const SEVEN: felt252 = '006669';
-    // TODO 
-    // Forest Ruins
-    // Mountain Deep
-    // Underwater Keep
-    // Ember"s Glow
+// TODO 
+// Forest Ruins
+// Mountain Deep
+// Underwater Keep
+// Ember"s Glow
 }
 
 /// Names mapped to the above colors

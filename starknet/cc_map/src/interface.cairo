@@ -1,4 +1,3 @@
-
 use array::ArrayTrait;
 
 #[derive(Copy, Drop)]
@@ -21,12 +20,15 @@ struct Dungeon {
 }
 
 #[starknet::interface]
-trait IDungeons<TContractState> {
-    // TODO
+trait IDungeons<TContractState> { // TODO
 }
 
 #[starknet::interface]
 trait IDungeonsRender<TContractState> {
-    fn draw(ref self: ContractState, dungeon: Dungeon, x: Array<u8>, y: Array<u8>, entityData: Array<u8>) -> felt252;
-    fn tokenURI(ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: Array<u256>) -> felt252;
+    fn draw(
+        ref self: ContractState, dungeon: Dungeon, x: Array<u8>, y: Array<u8>, entityData: Array<u8>
+    ) -> felt252;
+    fn tokenURI(
+        ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: Array<u256>
+    ) -> felt252;
 }

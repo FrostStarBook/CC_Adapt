@@ -27,13 +27,11 @@ mod DungeonsRender {
         size: u256,
         environment: u256,
     }
-    
+
     /// Names mapped to the above colors
 
     #[storage]
-    struct Storage {
-
-    }
+    struct Storage {}
 
     //
     // Internal
@@ -43,13 +41,12 @@ mod DungeonsRender {
     impl InternalFunctions of InternalFunctionsTrait {
         fn getWidth(size: u256) -> (u256, u256) {
             // Each 'pixel' should be equal widths and take into account dungeon size + allocate padding (3 pixels) on both sides
-            let pixel: u256 = 500 / (size + 3*2);
+            let pixel: u256 = 500 / (size + 3 * 2);
             // Remove the width and divide by two to get the midpoint where we should start
-            let start: u256 = (500 - pixel*size) / 2;
+            let start: u256 = (500 - pixel * size) / 2;
             (start, pixel)
         }
     }
-    
 }
 
 // ---------------------------
@@ -57,9 +54,7 @@ mod DungeonsRender {
 // ---------------------------
 #[cfg(test)]
 mod tests {
-    use cc_map::{
-        dungeons_render::DungeonsRender::{ InternalFunctions }
-    };
+    use cc_map::{dungeons_render::DungeonsRender::{InternalFunctions}};
 
     #[test]
     fn test_get_witdth() {

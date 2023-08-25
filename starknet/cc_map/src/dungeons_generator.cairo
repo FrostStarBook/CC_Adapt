@@ -1,11 +1,14 @@
 #[starknet::contract]
 mod DungeonsGenerator {
+
+    use starknet::ContractAddress;
+    use openzeppelin::token::erc20::ERC20;
+    
     use array::ArrayTrait;
     use debug::PrintTrait;
 
     #[storage]
     struct Storage {
-        prefix: Array<felt252>
     }
 
     #[constructor]
@@ -14,7 +17,6 @@ mod DungeonsGenerator {
 
         _prefix.append('Abyssal');
 
-        self.prefix.write(_prefix);
     }
 
     #[test]

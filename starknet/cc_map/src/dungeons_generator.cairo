@@ -10,7 +10,6 @@ mod DungeonsGenerator {
 
     #[constructor]
     fn constructor(ref self: ContractState) {
-        
         let mut _prefix: Array<felt252> = ArrayTrait::new();
 
         _prefix.append('Abyssal');

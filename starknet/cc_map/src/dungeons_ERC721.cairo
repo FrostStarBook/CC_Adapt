@@ -33,8 +33,8 @@ mod Dungeons {
 
     #[constructor]
     fn constructor(ref self: ContractState, initial_supply: u256, recipient: ContractAddress) {
-        let name = 'MyNFT';
-        let symbol = 'MNFT';
+        let name = 'Crypts and Caverns';
+        let symbol = 'C&C';
 
         let mut unsafe_state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::initializer(ref unsafe_state, name, symbol);
@@ -50,5 +50,11 @@ mod Dungeons {
     fn safe_mint(ref self: ContractState, to: ContractAddress, token_id: u256, data: Span<felt252>) {
         let mut unsafe_state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::_safe_mint(ref unsafe_state, to, token_id, data);
+    }
+
+    #[external(v0)]
+    fn mint(ref self: ContractState, to: ContractAddress, token_id: u256) {
+        let mut unsafe_state = ERC721::unsafe_new_contract_state();
+        ERC721::InternalImpl::_mint(ref unsafe_state, to, token_id);
     }
 }

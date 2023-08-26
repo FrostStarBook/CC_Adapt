@@ -85,23 +85,54 @@ mod DungeonsRender {
         self.environmentName.write(5, 'Embers Glow');
     }
 
-    // #[external(v0)]
-    // impl DungeonsRenderImpl of IDungeonsRender<ContractState> {
-    //     fn draw(
-    //         ref self: ContractState, dungeon: Dungeon, x: Array<u8>, y: Array<u8>, entityData: Array<u8>
-    //     ) -> felt252 {
-    //         // Hardcoded to save memory: Width = 100
-    //         // Setup SVG and draw our background
-    //         // We write at 100x100 and scale it 5x to 500x500 to avoid safari small rendering
-    //         let mut parts: felt252 = 
+    #[external(v0)]
+    impl DungeonsRenderImpl of IDungeonsRender<ContractState> {
 
-    //     }
-    //     fn tokenURI(
-    //         ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: Array<u256>
-    //     ) -> felt252 {
+        fn draw(
+            ref self: ContractState, dungeon: Dungeon, x: Array<u8>, y: Array<u8>, entityData: Array<u8>
+        ) -> Array<felt252> {
+            // Hardcoded to save memory: Width = 100
+            // Setup SVG and draw our background
+            // We write at 100x100 and scale it 5x to 500x500 to avoid safari small rendering
+            let mut parts: Array<felt252> = ArrayTrait::new();
+            parts.append('<svg xmlns=');
+            parts.append('"http://www.w3.org/2000/svg"');
+            parts.append(' preserveAspectRatio=');
+            parts.append('"xMinYMin meet"');
+            parts.append(' viewBox="0 0 500 500"');
+            parts.append(' shape-rendering="crispEdges"');
+            parts.append(' transform-origin="center">');
+            parts.append('<rect width="100%"');
+            parts.append('height="100%" fill="#');
+            parts.append(self.colors.read(dungeon.environment * 4));
+            parts.append('" />');
 
-    //     }
-    // }
+            parts.append('</svg>');
+
+            parts
+        }
+
+        fn tokenURI(
+            ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: Array<u256>
+        ) -> Array<felt252> {
+            let mut output: Array<felt252> = ArrayTrait::new();
+
+            // Generate dungeon
+            // output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entityType);
+
+            let mut size: Array<felt252> = ArrayTrait::new();
+            size.append(dungeon.size.into());
+            size.append('x');
+            size.append(dungeon.size.into());
+            // Base64 Encode svg and output
+            let mut json: Array<felt252> = ArrayTrait::new();
+            json.append('{"name": "Crypts and Caverns #');
+            json.append(tokenId.try_into().unwrap());
+
+
+            output
+        }
+    }
 
     //
     // Internal
@@ -109,23 +140,41 @@ mod DungeonsRender {
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
-
-        fn drawTile(row: felt252, x: u256, y: u256, width: u256, pixel: u256, color: felt252) -> Array<felt252> {
-            let mut title: Array<felt252> = ArrayTrait::new();
-            title.append(row);
-            title.append('<rect x="');
-            title.append(x.try_into().unwrap());
-            title.append('" y="');
-            title.append(y.try_into().unwrap());
-            title.append('" width="');
-            title.append(width.try_into().unwrap());
-            title.append('" height="');
-            title.append(pixel.try_into().unwrap());
-            title.append('" fill="#');
-            title.append(color);
-            title.append('" />');
+        // Draw each entity as a pixel on the map
+        fn drawEntities(self: @ContractState, x: Array<u8>, y: Array<u8>, entityData: Array<u8>, dungeon: Dungeon, helper: RenderHelper) -> Array<felt252> {
+            let mut parts: Array<felt252> = ArrayTrait::new();
             
-            title
+            let mut i: usize = 1;
+            loop {
+                if i > entityData.len() {
+                    break;
+                }
+                let xU256: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
+                let yU256: u256 = helper.start + (*y.at(i)).into() * helper.pixel;
+                let colorIndex: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
+                let color: felt252 = self.colors.read(colorIndex);
+                // parts = self.drawTile(parts, xU256, yU256, helper.pixel, helper.pixel, color);
+               
+                i += 1;
+            };
+            parts
+        }
+
+        fn drawTile(row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252) -> Array<felt252> {
+            let mut tile: Array<felt252> = row;
+            tile.append('<rect x="');
+            tile.append(x.try_into().unwrap());
+            tile.append('" y="');
+            tile.append(y.try_into().unwrap());
+            tile.append('" width="');
+            tile.append(width.try_into().unwrap());
+            tile.append('" height="');
+            tile.append(pixel.try_into().unwrap());
+            tile.append('" fill="#');
+            tile.append(color);
+            tile.append('" />');
+            
+            tile
         }
 
         fn getWidth(size: u256) -> (u256, u256) {
@@ -148,9 +197,10 @@ mod tests {
 
     #[test]
     fn test_draw_tile() {
-        let tile: Array<felt252> = InternalFunctions::drawTile('row', 1, 2, 3, 4, 'F3D899');
+        let mut row: Array<felt252> = ArrayTrait::new();
+        row.append('row');
+        let tile: Array<felt252> = InternalFunctions::drawTile(row, 1, 2, 3, 4, 'F3D899');
         assert(tile.len() == 12_usize, 'the right length');
-        assert(*tile.at(0_usize) == 'row', 'the right row');
         assert(*tile.at(1_usize) == '<rect x="', 'the right rect');
         assert(*tile.at(2_usize) == 1, 'the right x');
         assert(*tile.at(10_usize) == 'F3D899', 'the right color');

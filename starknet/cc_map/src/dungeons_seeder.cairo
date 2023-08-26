@@ -213,26 +213,23 @@ mod dungeonsSeeder {
     fn get_name(self: @ContractState, seed: u64) -> (Array<felt252>, felt252, u8) {
         let unique_seed = random(seed, 0_u128, 10000_u128);
         let mut name_parts = ArrayTrait::<felt252>::new();
+        let affinity = 'none';
+        let legendary = 0;
 
         if (unique_seed < 17) {
             // Unique name
             let legendary = 1;
-            let affinity = 'none';
             name_parts.append(self.UNIQUE.read(unique_seed));
+            return (name_parts, affinity, legendary);
         } else {
             let base_seed = random(seed, 0_u128, 38_u128);
             if unique_seed <= 300 {
                 // Person's Name + Base Land
-                let legendary = 0;
-                let affinity = 'none';
-
                 name_parts.append(self.PEOPLE.read(random(seed, 0_u128, 12_u128)));
                 name_parts.append(' ');
                 name_parts.append(self.LAND.read(base_seed));
             } else if unique_seed <= 1800 {
                 // Prefix + Base Land + Suffix
-
-                let legendary = 0;
                 let affinity = self.SUFFIXES.read(random(seed, 0_u128, 59_u128));
 
                 name_parts.append(self.PREFIX.read(random(seed, 0_u128, 29_u128)));
@@ -243,16 +240,11 @@ mod dungeonsSeeder {
             } else if unique_seed <= 4000 {
                 // Base Land + Suffix
 
-                let legendary = 0;
-                let affinity = 'none';
-
                 name_parts.append(self.LAND.read(base_seed));
                 name_parts.append(' of ');
                 name_parts.append(self.SUFFIXES.read(random(seed, 0_u128, 59_u128)));
             } else if unique_seed <= 6500 {
                 // Prefix + Base Land
-
-                let legendary = 0;
                 let affinity = self.LAND.read(base_seed);
 
                 name_parts.append(self.PREFIX.read(random(seed, 0_u128, 29_u128)));
@@ -260,8 +252,6 @@ mod dungeonsSeeder {
                 name_parts.append(affinity);
             } else {
                 // Base Land
-                let legendary = 0;
-                let affinity = 'none';
                 name_parts.append(self.LAND.read(base_seed));
             }
         };

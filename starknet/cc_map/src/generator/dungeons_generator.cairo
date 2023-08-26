@@ -55,7 +55,7 @@ mod DungeonsGenerator {
     fn generate_rooms(settings: @Settings) -> (Array<Room>, Array<u128>) {
         let size = (*settings).size;
         let seed = (*settings).seed;
-        let counter = (*settings).counter;
+        let mut counter = (*settings).counter;
 
         let room_settings = RoomSettings {
             minRooms: size / 3, maxRooms: size / 1, minRoomSize: 2, maxRoomSize: size / 3
@@ -66,6 +66,7 @@ mod DungeonsGenerator {
         let mut num_rooms: u128 = random::random(
             seed + counter, room_settings.minRooms, room_settings.maxRooms
         );
+        counter = counter + 1;
 
         let mut rooms: Array<Room> = ArrayTrait::new();
 
@@ -77,7 +78,17 @@ mod DungeonsGenerator {
             }
 
             let mut valid = true;
-            // let current :Room = 
+
+            let seed1 = seed + counter;
+            counter = counter + 1;
+            let seed2 = seed + counter;
+
+            let current: Room = Room {
+                x: 0,
+                y: 0,
+                width: random::random(seed1, room_settings.minRoomSize, room_settings.maxRoomSize),
+                height: random::random(seed2, room_settings.minRoomSize, room_settings.maxRoomSize)
+            };
 
             if valid {
                 num_rooms = num_rooms - 1;

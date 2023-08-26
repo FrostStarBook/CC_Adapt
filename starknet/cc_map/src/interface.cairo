@@ -1,3 +1,4 @@
+use array::ArrayTrait;
 use cc_map::dungeons::Dungeons::Dungeon;
 
 // TODO

@@ -1,4 +1,8 @@
+use super::dungeons_generator::DungeonsGenerator::{Settings};
+
+
 #[starknet::interface]
-trait IDungeonsGenerator {
-    fn generate_rooms(ref self: ContractState, settings: Settings);
+trait IDungeonsGenerator<TContractState> {
+    // for example
+    // fn generate_rooms(ref self: TContractState, settings: Settings);
 }

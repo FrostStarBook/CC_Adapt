@@ -1,7 +1,7 @@
 use traits::{Into, TryInto};
 
-fn random(ref seed: u128, minNum: u128, maxNum: u128) -> u128 {
-    seed = (seed * 214013 + 2531011) % 4294967296;
+fn random(seed: u128, minNum: u128, maxNum: u128) -> u128 {
+    let mut seed = (seed * 214013 + 2531011) % 4294967296;
     return seed % (maxNum - minNum + 1) + minNum;
 }
 
@@ -17,5 +17,5 @@ fn random_s(seed: felt252, minNum: u128, maxNum: u128) -> u128 {
 fn test_random() {
     let mut seed = 123_u128;
 
-    let result = random(ref seed, 0_u128, 10_u128);
+    let result = random(seed, 0_u128, 10_u128);
 }

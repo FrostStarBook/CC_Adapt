@@ -1,6 +1,7 @@
 #[starknet::contract]
 mod dungeonsSeeder {
     use array::ArrayTrait;
+    use cc_map::utils::random::{random};
 
     #[storage]
     struct Storage {
@@ -179,5 +180,104 @@ mod dungeonsSeeder {
         self.PEOPLE.write(9, 'Tish\'s');
         self.PEOPLE.write(10, 'Viper\'s');
         self.PEOPLE.write(11, 'Woe\'s');
+    }
+
+    fn get_seed(token_id: u64) -> u64 {
+        let seed = starknet::get_block_timestamp();
+        seed
+    }
+
+    fn get_size(seed: u64) -> u8 {
+        let size = random(seed, 8_u128, 25_u128);
+        size
+    }
+
+    fn get_environment(seed: u64) -> u8 {
+        let rand = random(seed, 0_u128, 100_u128);
+
+        if rand >= 70 {
+            0
+        } else if rand >= 45 {
+            1
+        } else if rand >= 25 {
+            2
+        } else if rand >= 13 {
+            3
+        } else if rand >= 4 {
+            4
+        } else {
+            5
+        }
+    }
+
+    fn get_name(seed: u64) -> (felt252, felt252, u8) {
+        let unique_seed = random(seed, 0_u128, 10000_u128);
+
+        let (output, affinity, legendary) = if unique_seed < 17 {
+            // Unique name
+            let legendary = 1;
+            let affinity = 'none';
+
+            let output = self.UNIQUE.read(unique_seed);
+        } else {
+            let mut name_parts = ArrayTrait::<felt252>::new();
+            let base_seed = random(seed, 0_u128, 38_u128);
+            if unique_seed <= 300 {
+                // Person's Name + Base Land
+                let legendary = 0;
+                let affinity = 'none';
+
+                name_parts.append(self.PEOPLE.read(random(seed, 0_u128, 12_u128)));
+                name_parts.append(' ');
+                name_parts.append(self.LAND.read(base_seed));
+
+                let output = format!('{}{}', name_parts[0], name_parts[1], name_parts[2]);
+            } else if unique_seed <= 1800 {
+                // Prefix + Base Land + Suffix
+
+                let legendary = 0;
+                name_parts.append(self.PREFIX.read(random(seed, 0_u128, 29_u128)));
+                name_parts.append(' ');
+                name_parts.append(self.LAND.read(base_seed));
+                name_parts.append(' of ');
+                name_parts.append(self.SUFFIXES.read(random(seed, 0_u128, 59_u128)));
+
+                let output = format!(
+                    '{}{} {}{}',
+                    name_parts[0],
+                    name_parts[1],
+                    name_parts[2],
+                    name_parts[3],
+                    name_parts[4]
+                );
+            } else if unique_seed <= 4000 {
+                // Base Land + Suffix
+
+                let legendary = 0;
+                let affinity = 'none';
+
+                name_parts.append(self.LAND.read(base_seed));
+                name_parts.append(' of ');
+                name_parts.append(self.SUFFIXES.read(random(seed, 0_u128, 59_u128)));
+                let output = format!('{} {}', name_parts[0], name_parts[1], name_parts[2]);
+            } else if unique_seed <= 6500 {
+                // Prefix + Base Land
+
+                let legendary = 0;
+                let affinity = 'none';
+
+                name_parts.append(self.PREFIX.read(random(seed, 0_u128, 29_u128)));
+                name_parts.append(' ');
+                name_parts.append(self.LAND.read(base_seed));
+
+                let output = format!('{} {}', name_parts[0], name_parts[1], name_parts[2]);
+            } else {
+                // Base Land
+                let legendary = 0;
+                let affinity = 'none';
+                let output = self.LAND.read(base_seed);
+            }
+        };
+        return (output, affinity, legendary);
     }
 }

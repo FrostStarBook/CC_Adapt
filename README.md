@@ -18,3 +18,8 @@ cd /starknet/cc_map
 scarb build && scarb cairo-run
 ```
 
+fmt code
+```
+scarb fmt
+```
+

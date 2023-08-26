@@ -109,8 +109,9 @@ mod DungeonsRender {
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
-
-        fn drawTile(row: felt252, x: u256, y: u256, width: u256, pixel: u256, color: felt252) -> Array<felt252> {
+        fn drawTile(
+            row: felt252, x: u256, y: u256, width: u256, pixel: u256, color: felt252
+        ) -> Array<felt252> {
             let mut title: Array<felt252> = ArrayTrait::new();
             title.append(row);
             title.append('<rect x="');
@@ -124,7 +125,7 @@ mod DungeonsRender {
             title.append('" fill="#');
             title.append(color);
             title.append('" />');
-            
+
             title
         }
 

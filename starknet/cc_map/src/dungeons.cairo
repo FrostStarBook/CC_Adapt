@@ -22,7 +22,5 @@ mod Dungeons {
     }
 
     #[storage]
-    struct Storage {
-
-    }    
+    struct Storage {}
 }

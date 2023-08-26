@@ -4,3 +4,5 @@ mod generator;
 mod dungeons;
 mod interface;
 mod utils;
+
+mod erc721;

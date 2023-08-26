@@ -210,11 +210,11 @@ mod dungeonsSeeder {
         }
     }
 
-    fn get_name(self: @ContractState, seed: u64) -> (ArrayTrait<felt252>, felt252, u8) {
+    fn get_name(self: @ContractState, seed: u64) -> (Array<felt252>, felt252, u8) {
         let unique_seed = random(seed, 0_u128, 10000_u128);
         let mut name_parts = ArrayTrait::<felt252>::new();
 
-        let (name_parts, affinity, legendary) = if unique_seed < 17 {
+        if (unique_seed < 17) {
             // Unique name
             let legendary = 1;
             let affinity = 'none';

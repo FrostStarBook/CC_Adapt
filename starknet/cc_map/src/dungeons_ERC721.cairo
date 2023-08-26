@@ -32,7 +32,7 @@ mod Dungeons {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, initial_supply: u256, recipient: ContractAddress) {
+    fn constructor(ref self: ContractState) {
         let name = 'Crypts and Caverns';
         let symbol = 'C&C';
 

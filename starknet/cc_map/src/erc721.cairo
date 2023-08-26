@@ -7,7 +7,7 @@ mod MyToken {
     struct Storage {}
 
     #[constructor]
-    fn constructor(ref self: ContractState, initial_supply: u256, recipient: ContractAddress) {
+    fn constructor(ref self: ContractState) {
         let name = 'Crypts and Caverns';
         let symbol = 'C&C';
 
@@ -20,4 +20,6 @@ mod MyToken {
         let mut unsafe_state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::_safe_mint(ref unsafe_state, to, token_id, data)
     }
+
+    
 }

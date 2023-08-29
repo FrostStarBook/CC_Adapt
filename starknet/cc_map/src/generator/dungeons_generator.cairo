@@ -1,3 +1,5 @@
+use core::traits::Into;
+use core::traits::Destruct;
 use core::traits::TryInto;
 use core::clone::Clone;
 
@@ -82,13 +84,47 @@ mod DungeonsGenerator {
             let seed1 = seed + counter;
             counter = counter + 1;
             let seed2 = seed + counter;
+            counter = counter + 1;
+            let seed3 = seed + counter;
+            counter = counter + 1;
+            let seed4 = seed + counter;
+            counter = counter + 1;
 
-            let current: Room = Room {
+            let mut current: Room = Room {
                 x: 0,
                 y: 0,
                 width: random::random(seed1, room_settings.minRoomSize, room_settings.maxRoomSize),
                 height: random::random(seed2, room_settings.minRoomSize, room_settings.maxRoomSize)
             };
+
+            current.x = random::random(seed3, 1, *settings.size - 1 - current.width);
+            current.y = random::random(seed4, 1, *settings.size - 1 - current.height);
+
+            let roomFirst: Room = *rooms[0];
+            if (roomFirst.x != 0) {
+
+                let len: u128 = rooms.len().into();
+                let mut i: u128 = 0;
+                loop {
+                    if i > rooms.len().into() - num_rooms {
+                        break;
+                    }
+
+                    let room: Room = *rooms[i];
+                    if room.x
+                        - 1 < current.x
+                        + current.width && room.x
+                        + room.width
+                        + 1 > current.x && room.y
+                        - 1 < current.x
+                        + current.height && room.y
+                        + room.height > current.y {
+                        valid = false;
+                    }
+
+                    i = i + 1;
+                }
+            }
 
             if valid {
                 num_rooms = num_rooms - 1;

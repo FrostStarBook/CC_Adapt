@@ -1,17 +1,16 @@
-use core::traits::Into;
-use core::traits::Destruct;
-use core::traits::TryInto;
-use core::clone::Clone;
-
 #[starknet::contract]
 mod DungeonsGenerator {
+    use core::traits::{Into, TryInto};
+    use core::option::OptionTrait;
+    use core::array::SpanTrait;
+
     use starknet::ContractAddress;
     use openzeppelin::token::erc20::ERC20;
 
     use array::ArrayTrait;
-    use debug::PrintTrait;
 
-    use cc_map::utils::random;
+    use cc_map::utils::random::{random};
+
 
     #[storage]
     struct Storage {}
@@ -65,7 +64,7 @@ mod DungeonsGenerator {
 
         let mut floor: Array<u128> = ArrayTrait::new();
 
-        let mut num_rooms: u128 = random::random(
+        let mut num_rooms: u128 = random(
             seed + counter, room_settings.minRooms, room_settings.maxRooms
         );
         counter = counter + 1;
@@ -93,24 +92,22 @@ mod DungeonsGenerator {
             let mut current: Room = Room {
                 x: 0,
                 y: 0,
-                width: random::random(seed1, room_settings.minRoomSize, room_settings.maxRoomSize),
-                height: random::random(seed2, room_settings.minRoomSize, room_settings.maxRoomSize)
+                width: random(seed1, room_settings.minRoomSize, room_settings.maxRoomSize),
+                height: random(seed2, room_settings.minRoomSize, room_settings.maxRoomSize)
             };
 
-            current.x = random::random(seed3, 1, *settings.size - 1 - current.width);
-            current.y = random::random(seed4, 1, *settings.size - 1 - current.height);
+            current.x = random(seed3, 1, *settings.size - 1 - current.width);
+            current.y = random(seed4, 1, *settings.size - 1 - current.height);
 
-            let roomFirst: Room = *rooms[0];
-            if (roomFirst.x != 0) {
-
-                let len: u128 = rooms.len().into();
-                let mut i: u128 = 0;
+            let rooms_span = rooms.span();
+            if (!rooms_span.is_empty()) {
+                let mut i: u32 = 0;
                 loop {
-                    if i > rooms.len().into() - num_rooms {
+                    if i > rooms_span.len() - num_rooms.try_into().unwrap() {
                         break;
                     }
 
-                    let room: Room = *rooms[i];
+                    let room: Room = *rooms_span[i];
                     if room.x
                         - 1 < current.x
                         + current.width && room.x
@@ -127,6 +124,8 @@ mod DungeonsGenerator {
             }
 
             if valid {
+                rooms[rooms.len() - num_rooms.try_into().unwrap()] = current;
+
                 num_rooms = num_rooms - 1;
             }
 

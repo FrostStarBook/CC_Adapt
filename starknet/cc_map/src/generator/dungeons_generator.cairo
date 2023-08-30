@@ -124,7 +124,8 @@ mod DungeonsGenerator {
             }
 
             if valid {
-                rooms[rooms.len() - num_rooms.try_into().unwrap()] = current;
+                // 数组的非两端元素更新，可能需要循环内依次复制元素创建新数组实现
+                // rooms[rooms.len() - num_rooms.try_into().unwrap()] = current;
 
                 num_rooms = num_rooms - 1;
             }

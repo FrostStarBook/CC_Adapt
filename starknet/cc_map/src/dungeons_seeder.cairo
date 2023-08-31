@@ -8,11 +8,11 @@ mod DungeonsSeeder {
 
     #[storage]
     struct Storage {
-        PREFIX: LegacyMap::<u128, felt252>,
-        LAND: LegacyMap::<u128, felt252>,
-        SUFFIXES: LegacyMap::<u128, felt252>,
-        UNIQUE: LegacyMap::<u128, felt252>,
-        PEOPLE: LegacyMap::<u128, felt252>
+        PREFIX: LegacyMap::<u256, felt252>,
+        LAND: LegacyMap::<u256, felt252>,
+        SUFFIXES: LegacyMap::<u256, felt252>,
+        UNIQUE: LegacyMap::<u256, felt252>,
+        PEOPLE: LegacyMap::<u256, felt252>
     }
 
     #[constructor]

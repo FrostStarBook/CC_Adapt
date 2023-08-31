@@ -3,14 +3,13 @@ mod DungeonsGenerator {
     use core::traits::{Into, TryInto};
     use core::option::OptionTrait;
     use core::array::SpanTrait;
+    use core::dict::Felt252DictTrait;
 
     use starknet::ContractAddress;
     use openzeppelin::token::erc20::ERC20;
-
     use array::ArrayTrait;
-
     use cc_map::utils::random::{random};
-
+    use cc_map::utils::bit_operation::{left_shift, right_shift};
 
     #[storage]
     struct Storage {}
@@ -53,7 +52,32 @@ mod DungeonsGenerator {
     #[constructor]
     fn constructor(ref self: ContractState) {}
 
-    fn generate_rooms(settings: @Settings) -> (Array<Room>, Array<u128>) {
+    fn get_length(size: u128) -> u128 {
+        ((size * size) / 256) + 1
+    }
+
+    #[external(v0)]
+    fn get_layout(self: ContractState, seed: u128, size: u128) -> (Array<felt252>, u128) {
+        let settings: Settings = Settings {
+            size: size, length: get_length(size), seed: seed, counter: 0
+        };
+        let structure = 0;
+
+        if (random(left_shift(settings.seed, settings.counter), 0, 100)) > 30 {
+            // Generate Rooms
+            let (rooms, floor) = generate_rooms(@settings);
+        // Generate Hallways
+        // let hallways = generate_hallways(@settings,@rooms);
+
+        // Combine floor and hallway tiles
+
+        // Caverns-based dungeon
+
+        }
+        (ArrayTrait::new(), 0)
+    }
+
+    fn generate_rooms(settings: @Settings) -> (Felt252Dict<Room>, Felt252Dict<Felt252Dict<u8>>) {
         let size = (*settings).size;
         let seed = (*settings).seed;
         let mut counter = (*settings).counter;
@@ -62,14 +86,16 @@ mod DungeonsGenerator {
             minRooms: size / 3, maxRooms: size / 1, minRoomSize: 2, maxRoomSize: size / 3
         };
 
-        let mut floor: Array<u128> = ArrayTrait::new();
+        let mut floor: Felt252Dict<Felt252Dict<u8>> = Default::default();
 
         let mut num_rooms: u128 = random(
             seed + counter, room_settings.minRooms, room_settings.maxRooms
-        );
+        )
+            .try_into()
+            .unwrap();
         counter = counter + 1;
 
-        let mut rooms: Array<Room> = ArrayTrait::new();
+        let mut rooms: Felt252Dict<Room> = Default::default();
 
         let mut safe_check = 256;
 
@@ -92,41 +118,43 @@ mod DungeonsGenerator {
             let mut current: Room = Room {
                 x: 0,
                 y: 0,
-                width: random(seed1, room_settings.minRoomSize, room_settings.maxRoomSize),
+                width: random(seed1, room_settings.minRoomSize, room_settings.maxRoomSize)
+                    .try_into()
+                    .unwrap(),
                 height: random(seed2, room_settings.minRoomSize, room_settings.maxRoomSize)
+                    .try_into()
+                    .unwrap()
             };
 
-            current.x = random(seed3, 1, *settings.size - 1 - current.width);
-            current.y = random(seed4, 1, *settings.size - 1 - current.height);
+            current.x = random(seed3, 1, *settings.size - 1 - current.width).try_into().unwrap();
+            current.y = random(seed4, 1, *settings.size - 1 - current.height).try_into().unwrap();
 
-            let rooms_span = rooms.span();
-            if (!rooms_span.is_empty()) {
-                let mut i: u32 = 0;
-                loop {
-                    if i > rooms_span.len() - num_rooms.try_into().unwrap() {
-                        break;
-                    }
+            // TODO 
+            // let rooms_span = rooms.span();
+            // if (!rooms_span.is_empty()) {
+            //     let mut i: u32 = 0;
+            //     loop {
+            //         if i > rooms_span.len() - num_rooms.try_into().unwrap() {
+            //             break;
+            //         }
 
-                    let room: Room = *rooms_span[i];
-                    if room.x
-                        - 1 < current.x
-                        + current.width && room.x
-                        + room.width
-                        + 1 > current.x && room.y
-                        - 1 < current.x
-                        + current.height && room.y
-                        + room.height > current.y {
-                        valid = false;
-                    }
+            //         let room: Room = *rooms_span[i];
+            //         if room.x
+            //             - 1 < current.x
+            //             + current.width && room.x
+            //             + room.width
+            //             + 1 > current.x && room.y
+            //             - 1 < current.x
+            //             + current.height && room.y
+            //             + room.height > current.y {
+            //             valid = false;
+            //         }
 
-                    i = i + 1;
-                }
-            }
+            //         i = i + 1;
+            //     }
+            // }
 
             if valid {
-                // 数组的非两端元素更新，可能需要循环内依次复制元素创建新数组实现
-                // rooms[rooms.len() - num_rooms.try_into().unwrap()] = current;
-
                 num_rooms = num_rooms - 1;
             }
 

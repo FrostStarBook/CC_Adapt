@@ -87,9 +87,12 @@ mod DungeonsRender {
 
     #[external(v0)]
     impl DungeonsRenderImpl of IDungeonsRender<ContractState> {
-
         fn draw(
-            ref self: ContractState, dungeon: Dungeon, x: Array<u8>, y: Array<u8>, entityData: Array<u8>
+            ref self: ContractState,
+            dungeon: Dungeon,
+            x: Array<u8>,
+            y: Array<u8>,
+            entityData: Array<u8>
         ) -> Array<felt252> {
             // Hardcoded to save memory: Width = 100
             // Setup SVG and draw our background
@@ -129,7 +132,6 @@ mod DungeonsRender {
             json.append('{"name": "Crypts and Caverns #');
             json.append(tokenId.try_into().unwrap());
 
-
             output
         }
     }
@@ -141,9 +143,16 @@ mod DungeonsRender {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         // Draw each entity as a pixel on the map
-        fn drawEntities(self: @ContractState, x: Array<u8>, y: Array<u8>, entityData: Array<u8>, dungeon: Dungeon, helper: RenderHelper) -> Array<felt252> {
+        fn drawEntities(
+            self: @ContractState,
+            x: Array<u8>,
+            y: Array<u8>,
+            entityData: Array<u8>,
+            dungeon: Dungeon,
+            helper: RenderHelper
+        ) -> Array<felt252> {
             let mut parts: Array<felt252> = ArrayTrait::new();
-            
+
             let mut i: usize = 1;
             loop {
                 if i > entityData.len() {
@@ -154,13 +163,15 @@ mod DungeonsRender {
                 let colorIndex: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
                 let color: felt252 = self.colors.read(colorIndex);
                 // parts = self.drawTile(parts, xU256, yU256, helper.pixel, helper.pixel, color);
-               
+
                 i += 1;
             };
             parts
         }
 
-        fn drawTile(row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252) -> Array<felt252> {
+        fn drawTile(
+            row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252
+        ) -> Array<felt252> {
             let mut tile: Array<felt252> = row;
             tile.append('<rect x="');
             tile.append(x.try_into().unwrap());
@@ -173,7 +184,7 @@ mod DungeonsRender {
             tile.append('" fill="#');
             tile.append(color);
             tile.append('" />');
-            
+
             tile
         }
 

@@ -24,5 +24,4 @@ fn test_random() {
 
     let result = random(seed, 0_u128, 10_u128);
     assert(result > 0, 'random normal');
-
 }

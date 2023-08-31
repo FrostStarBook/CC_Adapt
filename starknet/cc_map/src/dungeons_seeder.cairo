@@ -186,7 +186,7 @@ mod DungeonsSeeder {
     }
 
     #[external(v0)]
-    impl DungeonsSeederImpl of IDungeonsSeeder<ContractState> {
+    impl IDungeonsSeederImpl of IDungeonsSeeder<ContractState> {
         fn get_seed(self: @ContractState, token_id: u256) -> u256 {
             let block_time = starknet::get_block_timestamp();
             let b_u256_time: u256 = block_time.into();
@@ -273,31 +273,4 @@ mod DungeonsSeeder {
         }
     }
 }
-// // ---------------------------
-// // ---------- Tests ----------
-// // ---------------------------
-// #[cfg(test)]
-// mod tests {
-//     use cc_map::{dungeons_seeder::DungeonsSeeder::{InternalFunctions}};
-//     use array::ArrayTrait;
-
-//     #[test]
-//     fn test_draw_tile() {
-//         let mut row: Array<felt252> = ArrayTrait::new();
-//         row.append('row');
-//         let tile: Array<felt252> = InternalFunctions::drawTile(row, 1, 2, 3, 4, 'F3D899');
-//         assert(tile.len() == 12_usize, 'the right length');
-//         assert(*tile.at(1_usize) == '<rect x="', 'the right rect');
-//         assert(*tile.at(2_usize) == 1, 'the right x');
-//         assert(*tile.at(10_usize) == 'F3D899', 'the right color');
-//     }
-
-//     #[test]
-//     fn test_get_witdth() {
-//         let (start, pixel) = InternalFunctions::getWidth(4);
-//         assert(pixel == 50, 'pixel is right');
-//         assert(start == 150, 'start is right');
-//     }
-// }
-
 

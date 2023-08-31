@@ -5,3 +5,5 @@ to
 target
 account.json
 key.json
+starknet/cc_map/l_account
+starknet/cc_map/l_keystore

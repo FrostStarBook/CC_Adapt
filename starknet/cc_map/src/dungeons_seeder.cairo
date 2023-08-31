@@ -1,9 +1,10 @@
 #[starknet::contract]
-mod dungeonsSeeder {
+mod DungeonsSeeder {
     use array::ArrayTrait;
     use option::OptionTrait;
     use traits::{Into, TryInto};
     use cc_map::utils::random::{random};
+    use cc_map::interface::IDungeonsSeeder;
 
     #[storage]
     struct Storage {
@@ -184,88 +185,119 @@ mod dungeonsSeeder {
         self.PEOPLE.write(11, 'Woe\'s');
     }
 
-    fn get_seed(token_id: u256) -> u256 {
-        let block_time = starknet::get_block_timestamp();
-        let b_u256_time: u256 = block_time.into();
-        let input = array![b_u256_time, token_id];
-        let seed = keccak::keccak_u256s_be_inputs(input.span());
-        seed
-    }
+    #[external(v0)]
+    impl DungeonsSeederImpl of IDungeonsSeeder<ContractState> {
+        fn get_seed(self: @ContractState, token_id: u256) -> u256 {
+            let block_time = starknet::get_block_timestamp();
+            let b_u256_time: u256 = block_time.into();
+            let input = array![b_u256_time, token_id];
+            let seed = keccak::keccak_u256s_be_inputs(input.span());
+            seed
+        }
 
-    fn get_size(seed: u64) -> u8 {
-        let size = random(seed.into(), 8_u128, 25_u128);
-        size.try_into().unwrap()
-    }
+        fn get_size(self: @ContractState, seed: u64) -> u8 {
+            let size = random(seed.into(), 8_u128, 25_u128);
+            size.try_into().unwrap()
+        }
 
-    fn get_environment(seed: u64) -> u8 {
-        let rand = random(seed.into(), 0_u128, 100_u128);
+        fn get_environment(self: @ContractState, seed: u64) -> u8 {
+            let rand = random(seed.into(), 0_u128, 100_u128);
 
-        if rand >= 70 {
-            0
-        } else if rand >= 45 {
-            1
-        } else if rand >= 25 {
-            2
-        } else if rand >= 13 {
-            3
-        } else if rand >= 4 {
-            4
-        } else {
-            5
+            if rand >= 70 {
+                0
+            } else if rand >= 45 {
+                1
+            } else if rand >= 25 {
+                2
+            } else if rand >= 13 {
+                3
+            } else if rand >= 4 {
+                4
+            } else {
+                5
+            }
+        }
+
+        fn get_name(self: @ContractState, seed: u128) -> (Array<felt252>, felt252, u8) {
+            let unique_seed = random(seed, 0_u128, 10000_u128);
+            let mut name_parts = ArrayTrait::<felt252>::new();
+            let affinity = 'none';
+            let legendary = 0;
+
+            if (unique_seed < 17) {
+                // Unique name
+                let legendary = 1;
+                let a = self.UNIQUE.read(unique_seed);
+                name_parts.append(a);
+                return (name_parts, affinity, legendary);
+            } else {
+                let base_seed = random(seed, 0_u128, 38_u128);
+                if unique_seed <= 300 {
+                    // Person's Name + Base Land
+                    let people_seed = random(seed, 0_u128, 12_u128);
+                    name_parts.append(self.PEOPLE.read(people_seed.into()));
+                    name_parts.append(' ');
+                    name_parts.append(self.LAND.read(base_seed.into()));
+                } else if unique_seed <= 1800 {
+                    // Prefix + Base Land + Suffix
+                    let suffixs_random = random(seed, 0_u128, 59_u128);
+                    let affinity = self.SUFFIXES.read(suffixs_random);
+                    let prefix_seed = random(seed, 0_u128, 29_u128);
+
+                    name_parts.append(self.PREFIX.read(prefix_seed.into()));
+                    name_parts.append(' ');
+                    name_parts.append(self.LAND.read(base_seed.into()));
+                    name_parts.append(' of ');
+                    name_parts.append(affinity);
+                } else if unique_seed <= 4000 {
+                    // Base Land + Suffix
+                    let suffixs_random = random(seed, 0_u128, 59_u128);
+
+                    name_parts.append(self.LAND.read(base_seed.into()));
+                    name_parts.append(' of ');
+                    name_parts.append(self.SUFFIXES.read(suffixs_random));
+                } else if unique_seed <= 6500 {
+                    // Prefix + Base Land
+                    let affinity = self.LAND.read(base_seed.into());
+                    let prefix_seed = random(seed, 0_u128, 29_u128);
+
+                    name_parts.append(self.PREFIX.read(prefix_seed.into()));
+                    name_parts.append(' ');
+                    name_parts.append(affinity);
+                } else {
+                    // Base Land
+                    name_parts.append(self.LAND.read(base_seed.into()));
+                }
+            };
+            return (name_parts, affinity, legendary);
         }
     }
-
-    fn get_name(self: @ContractState, seed: u128) -> (Array<felt252>, felt252, u8) {
-        let unique_seed = random(seed, 0_u128, 10000_u128);
-        let mut name_parts = ArrayTrait::<felt252>::new();
-        let affinity = 'none';
-        let legendary = 0;
-
-        if (unique_seed < 17) {
-            // Unique name
-            let legendary = 1;
-            let a = self.UNIQUE.read(unique_seed);
-            name_parts.append(a);
-            return (name_parts, affinity, legendary);
-        } else {
-            let base_seed = random(seed, 0_u128, 38_u128);
-            if unique_seed <= 300 {
-                // Person's Name + Base Land
-                let people_seed = random(seed, 0_u128, 12_u128);
-                name_parts.append(self.PEOPLE.read(people_seed.into()));
-                name_parts.append(' ');
-                name_parts.append(self.LAND.read(base_seed.into()));
-            } else if unique_seed <= 1800 {
-                // Prefix + Base Land + Suffix
-                let suffixs_random = random(seed, 0_u128, 59_u128);
-                let affinity = self.SUFFIXES.read(suffixs_random);
-                let prefix_seed = random(seed, 0_u128, 29_u128);
-
-                name_parts.append(self.PREFIX.read(prefix_seed.into()));
-                name_parts.append(' ');
-                name_parts.append(self.LAND.read(base_seed.into()));
-                name_parts.append(' of ');
-                name_parts.append(affinity);
-            } else if unique_seed <= 4000 {
-                // Base Land + Suffix
-                let suffixs_random = random(seed, 0_u128, 59_u128);
-
-                name_parts.append(self.LAND.read(base_seed.into()));
-                name_parts.append(' of ');
-                name_parts.append(self.SUFFIXES.read(suffixs_random));
-            } else if unique_seed <= 6500 {
-                // Prefix + Base Land
-                let affinity = self.LAND.read(base_seed.into());
-                let prefix_seed = random(seed, 0_u128, 29_u128);
-
-                name_parts.append(self.PREFIX.read(prefix_seed.into()));
-                name_parts.append(' ');
-                name_parts.append(affinity);
-            } else {
-                // Base Land
-                name_parts.append(self.LAND.read(base_seed.into()));
-            }
-        };
-        return (name_parts, affinity, legendary);
-    }
 }
+// // ---------------------------
+// // ---------- Tests ----------
+// // ---------------------------
+// #[cfg(test)]
+// mod tests {
+//     use cc_map::{dungeons_seeder::DungeonsSeeder::{InternalFunctions}};
+//     use array::ArrayTrait;
+
+//     #[test]
+//     fn test_draw_tile() {
+//         let mut row: Array<felt252> = ArrayTrait::new();
+//         row.append('row');
+//         let tile: Array<felt252> = InternalFunctions::drawTile(row, 1, 2, 3, 4, 'F3D899');
+//         assert(tile.len() == 12_usize, 'the right length');
+//         assert(*tile.at(1_usize) == '<rect x="', 'the right rect');
+//         assert(*tile.at(2_usize) == 1, 'the right x');
+//         assert(*tile.at(10_usize) == 'F3D899', 'the right color');
+//     }
+
+//     #[test]
+//     fn test_get_witdth() {
+//         let (start, pixel) = InternalFunctions::getWidth(4);
+//         assert(pixel == 50, 'pixel is right');
+//         assert(start == 150, 'start is right');
+//     }
+// }
+
+

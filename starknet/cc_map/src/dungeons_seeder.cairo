@@ -286,4 +286,14 @@ mod DungeonsSeeder {
         };
         return _seed;
     }
+
+    #[test]
+    #[available_gas(30000000)]
+    fn test_bit_operation_left() {
+        let mut seed = 3_u128;
+
+        let result = bit_operation_left(seed, 5_u32);
+        assert(result == 96, 'bit_operation normal');
+    }
 }
+

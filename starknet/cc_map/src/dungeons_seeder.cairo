@@ -184,8 +184,11 @@ mod dungeonsSeeder {
         self.PEOPLE.write(11, 'Woe\'s');
     }
 
-    fn get_seed(token_id: u64) -> u64 {
-        let seed = starknet::get_block_timestamp();
+    fn get_seed(token_id: u256) -> u256 {
+        let block_time = starknet::get_block_timestamp();
+        let b_u256_time: u256 = block_time.into();
+        let input = array![b_u256_time, token_id];
+        let seed = keccak::keccak_u256s_be_inputs(input.span());
         seed
     }
 

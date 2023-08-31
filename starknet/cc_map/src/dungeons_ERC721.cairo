@@ -3,6 +3,7 @@ mod Dungeons {
     use array::ArrayTrait;
     use starknet::ContractAddress;
     use openzeppelin::token::erc721::ERC721;
+    use cc_map::{dungeons_seeder::DungeonsSeeder::{IDungeonsSeederImpl}};
 
     #[derive(Drop, Serde)]
     struct EntityData {
@@ -23,12 +24,24 @@ mod Dungeons {
         dungeonName: felt252,
     }
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        Minted: Minted, 
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Minted {
+        #[key]
+        account: ContractAddress,
+        token_id: u256,
+    }
+
+    // Store seeds for our maps
     #[storage]
     struct Storage {
-        token_id: u8,
-        cc_name: felt252,
-        tokenUri: felt252,
-        svg: felt252
+        seeds: LegacyMap::<ContractAddress, u256>,
+        token_id: u8
     }
 
     #[constructor]
@@ -47,7 +60,9 @@ mod Dungeons {
     }
 
     #[external(v0)]
-    fn safe_mint(ref self: ContractState, to: ContractAddress, token_id: u256, data: Span<felt252>) {
+    fn safe_mint(
+        ref self: ContractState, to: ContractAddress, token_id: u256, data: Span<felt252>
+    ) {
         let mut unsafe_state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::_safe_mint(ref unsafe_state, to, token_id, data);
     }

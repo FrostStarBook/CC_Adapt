@@ -219,7 +219,7 @@ mod DungeonsSeeder {
         }
 
         fn get_name(self: @ContractState, seed: u128) -> (Array<felt252>, felt252, u8) {
-            let unique_seed = random(seed, 0_u128, 10000_u128);
+            let unique_seed = random(bit_operation_left(seed, 15_u32), 0_u128, 10000_u128);
             let mut name_parts = ArrayTrait::<felt252>::new();
             let affinity = 'none';
             let legendary = 0;
@@ -231,18 +231,18 @@ mod DungeonsSeeder {
                 name_parts.append(a);
                 return (name_parts, affinity, legendary);
             } else {
-                let base_seed = random(seed, 0_u128, 38_u128);
+                let base_seed = random(bit_operation_left(seed, 16_u32), 0_u128, 38_u128);
                 if unique_seed <= 300 {
                     // Person's Name + Base Land
-                    let people_seed = random(seed, 0_u128, 12_u128);
+                    let people_seed = random(bit_operation_left(seed, 23_u32), 0_u128, 12_u128);
                     name_parts.append(self.PEOPLE.read(people_seed.into()));
                     name_parts.append(' ');
                     name_parts.append(self.LAND.read(base_seed.into()));
                 } else if unique_seed <= 1800 {
                     // Prefix + Base Land + Suffix
-                    let suffixs_random = random(seed, 0_u128, 59_u128);
+                    let suffixs_random = random(bit_operation_left(seed, 27_u32), 0_u128, 59_u128);
                     let affinity = self.SUFFIXES.read(suffixs_random);
-                    let prefix_seed = random(seed, 0_u128, 29_u128);
+                    let prefix_seed = random(bit_operation_left(seed, 42_u32), 0_u128, 29_u128);
 
                     name_parts.append(self.PREFIX.read(prefix_seed.into()));
                     name_parts.append(' ');
@@ -251,7 +251,7 @@ mod DungeonsSeeder {
                     name_parts.append(affinity);
                 } else if unique_seed <= 4000 {
                     // Base Land + Suffix
-                    let suffixs_random = random(seed, 0_u128, 59_u128);
+                    let suffixs_random = random(bit_operation_left(seed, 51_u32), 0_u128, 59_u128);
 
                     name_parts.append(self.LAND.read(base_seed.into()));
                     name_parts.append(' of ');
@@ -259,7 +259,7 @@ mod DungeonsSeeder {
                 } else if unique_seed <= 6500 {
                     // Prefix + Base Land
                     let affinity = self.LAND.read(base_seed.into());
-                    let prefix_seed = random(seed, 0_u128, 29_u128);
+                    let prefix_seed = random(bit_operation_left(seed, 59_u32), 0_u128, 29_u128);
 
                     name_parts.append(self.PREFIX.read(prefix_seed.into()));
                     name_parts.append(' ');
@@ -272,5 +272,18 @@ mod DungeonsSeeder {
             return (name_parts, affinity, legendary);
         }
     }
-}
 
+    fn bit_operation_left(seed: u128, bits: u32) -> u128 {
+        let mut _seed = seed;
+        let mut _bits: usize = bits;
+        loop {
+            if _bits < 1 {
+                break;
+            }
+
+            _seed *= 2;
+            _bits -= 1;
+        };
+        return _seed;
+    }
+}

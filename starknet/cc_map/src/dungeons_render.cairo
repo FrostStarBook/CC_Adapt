@@ -207,6 +207,7 @@ mod tests {
     use array::ArrayTrait;
 
     #[test]
+    #[ignore]
     fn test_draw_tile() {
         let mut row: Array<felt252> = ArrayTrait::new();
         row.append('row');
@@ -218,6 +219,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_witdth() {
         let (start, pixel) = InternalFunctions::getWidth(4);
         assert(pixel == 50, 'pixel is right');

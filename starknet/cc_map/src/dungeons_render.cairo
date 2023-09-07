@@ -139,7 +139,6 @@ mod DungeonsRender {
     //
     // Internal
     //
-
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         // Draw each entity as a pixel on the map

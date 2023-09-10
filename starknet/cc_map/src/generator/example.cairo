@@ -5,7 +5,16 @@ mod example {
     use debug::PrintTrait;
 
     #[storage]
-    struct Storage {}
+    struct Storage {
+        val: test_storage<T>
+    }
+
+
+    #[starknet::Store]
+    struct test_storage<T> {
+        val: T
+    }
+
 
     fn test() {
         let mut dict: Felt252Dict<u8> = Default::default();
@@ -17,16 +26,13 @@ mod example {
         assert(val == 100, 'Expecting 100');
 
         let mut dic: Felt252Dict<Nullable<Array<u8>>> = Default::default();
+    // dic.squash();
 
-        // dic.squash();
     }
 
 
     fn custom_insert<
-        T,
-        impl TDefault: Felt252DictValue<T>,
-        impl TDestruct: Destruct<T>,
-        impl TDrop: Drop<T>
+        T, impl TDefault: Felt252DictValue<T>, impl TDestruct: Destruct<T>, impl TDrop: Drop<T>
     >(
         ref dict: Felt252Dict<T>, key: felt252, value: T
     ) {
@@ -62,7 +68,10 @@ use box::BoxTrait;
 use dict::Felt252DictTrait;
 use nullable::{NullableTrait, nullable_from_box, match_nullable, FromNullableResult};
 
-fn main() {
+fn mainmain() {
+    let y = 30;
+    let y = 50;
+
     // Create the dictionary
     let mut d: Felt252Dict<Nullable<Span<felt252>>> = Default::default();
 
@@ -88,4 +97,45 @@ fn main() {
     assert(*span.at(0) == 8, 'Expecting 8');
     assert(*span.at(1) == 9, 'Expecting 9');
     assert(*span.at(2) == 10, 'Expecting 10');
+}
+
+struct Rectangle {
+    height: u64,
+    width: u64,
+}
+
+trait ShapeGeometry {
+    fn boundary(self: Rectangle) -> u64;
+    fn area(self: Rectangle) -> u64;
+}
+
+#[derive(Destruct, Felt252DictValue)]
+struct Inside {
+    array_inside: Felt252Dict<u8>
+}
+
+// impl ImplFelt252DictValue of Felt252DictValue<Inside>{
+//     fn zero_default() -> Inside nopanic{
+//         Inside {
+//             array_inside: Default::default()
+//         }
+//     };
+// }
+
+fn main() -> Felt252Dict<Inside> {
+    // let mut x = 1;
+    // increment(x)
+
+    let mut x: Felt252Dict<u8> = Default::default();
+    x.insert(0, 1);
+
+    let mut y: Felt252Dict<Inside> = Default::default();
+    // y.insert(0, Inside { array_inside: x });
+
+    y
+}
+
+fn increment(mut x: felt252) -> felt252 {
+    x += 1;
+    x
 }

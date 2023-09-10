@@ -97,6 +97,8 @@ mod DungeonsGenerator {
         // initialize the floor
         let mut floor: Felt252Dict<Nullable<Span<u8>>> = Default::default();
         let mut size_count = size;
+        'size'.print();
+        size.print();
         loop {
             if size_count == 0 {
                 break;
@@ -109,6 +111,8 @@ mod DungeonsGenerator {
                     break;
                 }
                 array_inside.append(0);
+
+                'array_append'.print();
                 size_inside -= 1;
             };
 
@@ -118,6 +122,8 @@ mod DungeonsGenerator {
                     nullable_from_box(BoxTrait::new(array_inside.span()))
                 );
 
+            'size_count'.print();
+            size_count.print();
             size_count -= 1;
         };
 
@@ -255,7 +261,7 @@ mod tests {
     use super::DungeonsGenerator;
 
     #[test]
-    #[available_gas(30000000)]
+    #[available_gas(30000000000000000000000000000000)]
     fn test_generate_room() {
         let settings = DungeonsGenerator::Settings { size: 3, length: 3, seed: 3, counter: 3 };
         let (mut rooms, mut floor) = DungeonsGenerator::generate_rooms(@settings);

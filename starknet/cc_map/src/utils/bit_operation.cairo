@@ -39,3 +39,8 @@ fn right_shift(base: u128, count: u128) -> u128 {
 
     result
 }
+
+// fn get_devided(base: u128, count: u128) -> (u128, u128) {
+
+
+// }

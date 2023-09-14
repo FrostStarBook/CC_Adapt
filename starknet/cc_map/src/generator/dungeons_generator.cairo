@@ -30,7 +30,7 @@ struct EntityData {
 #[derive(Copy, Drop, serded)]
 struct Settings {
     size: u128,
-    length: u128,
+    //  length: u128, // array's length is not important
     seed: u128,
     counter: u128
 }
@@ -57,8 +57,26 @@ fn random_with_counter_plus(ref settings: Settings, min: u128, max: u128) -> u12
     result
 }
 
-fn get_length(size: u128) -> u128 {
-    size * size / 256 + 1
+#[generate_trait]
+impl MapImpl of MapTrait {
+    fn set_bit(ref self: Felt252Dict<u128>, position: u128) {
+        let quotient = position / 128;
+        let remainder = position % 128;
+        let key: felt252 = quotient.into();
+        key.print();
+        self.insert(key, (self.get(quotient.into())) | (1.left_shift(remainder)));
+    }
+}
+
+#[test]
+#[available_gas(30000000)]
+fn test_set_bit() {
+    let mut map: Felt252Dict<u128> = Default::default();
+    let key: felt252 = 0.into();
+    map.insert(key, 2);
+    map.set_bit(20);
+    map.get(key).print();
+    assert(map.get(key) == 1048578, 'set bit');
 }
 
 fn add_mark(floor: Array<(u128, u128)>, hallways: Array<(u128, u128)>) -> Array<(u128, u128)> {
@@ -66,7 +84,7 @@ fn add_mark(floor: Array<(u128, u128)>, hallways: Array<(u128, u128)>) -> Array<
 }
 
 fn build_settings(seed: u128, size: u128) -> Settings {
-    Settings { size: size, length: get_length(size), seed: seed, counter: 0 }
+    Settings { size: size, seed: seed, counter: 0 }
 }
 
 fn get_layout(seed: u128, size: u128) -> (Array<(u128, u128)>, u128) {

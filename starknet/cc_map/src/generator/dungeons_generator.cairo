@@ -482,6 +482,7 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Array<(u128
     hallways
 }
 
+
 fn generate_points(
     ref settings: Settings, ref map: Array<(u128, u128)>, probability: u128
 ) -> Array<(u128, u128)> {
@@ -496,8 +497,12 @@ fn generate_points(
     loop {
         if counter == 1 {
             break;
-        } 
-        // to do 
+        }
+        // maybe should build a dict for indexing '1' in map when generate_something() running
+        // anyway deadline is the most powerful thing
+
+        let mut count = 0;
+        // loop{loop{loop{}}};
 
         counter += 1;
     };

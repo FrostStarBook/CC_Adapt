@@ -30,7 +30,7 @@ struct EntityData {
 #[derive(Copy, Drop, serded)]
 struct Settings {
     size: u128,
-    //  length: u128, // array's length is not important
+    length: u128, // array's length is not important
     seed: u128,
     counter: u128
 }
@@ -63,8 +63,15 @@ impl MapImpl of MapTrait {
         let quotient = position / 128;
         let remainder = position % 128;
         let key: felt252 = quotient.into();
-        key.print();
         self.insert(key, (self.get(quotient.into())) | (1.left_shift(remainder)));
+    }
+
+    fn get_bit(ref self: Felt252Dict<u128>, position: u128) -> u128 {
+        let quotient = position / 128;
+        let remainder = position % 128;
+        let key: felt252 = quotient.into();
+        let value: u128 = self.get(quotient.into());
+        value.right_shift(remainder) & 1
     }
 }
 
@@ -77,21 +84,28 @@ fn test_set_bit() {
     map.set_bit(20);
     map.get(key).print();
     assert(map.get(key) == 1048578, 'set bit');
+    assert(map.get_bit(20) == 1, 'get bit');
 }
 
 fn add_mark(floor: Array<(u128, u128)>, hallways: Array<(u128, u128)>) -> Array<(u128, u128)> {
     floor
 }
 
-fn build_settings(seed: u128, size: u128) -> Settings {
-    Settings { size: size, seed: seed, counter: 0 }
+fn random_shift_counter_plus(ref settings: Settings, min: u128, max: u128) -> u128 {
+    let result = random_u128(settings.seed.left_shift(settings.counter), min, max);
+    settings.counter += 1;
+    result
 }
 
-fn get_layout(seed: u128, size: u128) -> (Array<(u128, u128)>, u128) {
+fn build_settings(seed: u128, size: u128) -> Settings {
+    Settings { size: size, seed: seed, length: size, counter: 0 }
+}
+
+fn get_layout(seed: u128, size: u128) -> (Felt252Dict<u128>, u128) {
     let mut settings: Settings = build_settings(seed, size);
 
     let mut structure: u128 = 0;
-    if random_u128(seed.left_shift(0), 0, 100) > 30 {
+    if random_shift_counter_plus(ref settings, 0, 100) > 30 {
         {}
     //    let (mut rooms:Array<Rooms>,mut floor:Array<(u128,u128)>) = generate_rooms(settings);
     //    let mut hallways:Array<(u128,u128)> = generate_hallways(settings,rooms);
@@ -102,7 +116,7 @@ fn get_layout(seed: u128, size: u128) -> (Array<(u128, u128)>, u128) {
     // let mut cavern:Array<(u128,u128)> = generate_cavern(settings);
     // (cavern, structure)
     }
-    (ArrayTrait::new(), structure)
+    (Default::default(), structure)
 }
 
 fn get_entities(seed: u128, size: u128) -> (Array<u128>, Array<u128>, Array<u128>) {
@@ -138,7 +152,7 @@ fn square_root(origin: u128) -> u128 {
     return x;
 }
 
-fn generate_entities(seed: u128, size: u128) -> (Array<(u128, u128)>, Array<(u128, u128)>) {
+fn generate_entities(seed: u128, size: u128) -> (Felt252Dict<u128>, Felt252Dict<u128>) {
     let mut settings: Settings = build_settings(seed, size);
 
     if random_u128(settings.seed + settings.counter, 0, 100) > 30 {
@@ -157,7 +171,7 @@ fn generate_entities(seed: u128, size: u128) -> (Array<(u128, u128)>, Array<(u12
         //    }
         //    (generate_points(settings,floor, 12/square_root(settings.size - 6)), hallways_points)
 
-        (ArrayTrait::new(), ArrayTrait::new())
+        (Default::default(), Default::default())
     } else {
         settings.counter += 1;
 
@@ -168,7 +182,7 @@ fn generate_entities(seed: u128, size: u128) -> (Array<(u128, u128)>, Array<(u12
         // // the points does not take the bit which floor had mark already
         // (points,doors)
 
-        (ArrayTrait::new(), ArrayTrait::new())
+        (Default::default(), Default::default())
     }
 }
 
@@ -213,7 +227,9 @@ fn is_valid_room(rooms: @Array<Room>, num_rooms: u128, current: @Room) -> bool {
     }
 }
 
-fn append_room_and_floor(ref rooms: Array<Room>, ref floor: Array<(u128, u128)>, current: Room) {
+fn append_room_and_floor(
+    ref rooms: Array<Room>, ref floor: Felt252Dict<u128>, current: Room, size: u128
+) {
     rooms.append(current);
 
     let mut y = current.y;
@@ -228,7 +244,7 @@ fn append_room_and_floor(ref rooms: Array<Room>, ref floor: Array<(u128, u128)>,
                 break;
             }
 
-            floor.append((x, y));
+            floor.set_bit(y * size + x);
 
             x += 1;
         };
@@ -237,7 +253,7 @@ fn append_room_and_floor(ref rooms: Array<Room>, ref floor: Array<(u128, u128)>,
     };
 }
 
-fn generate_rooms(ref settings: Settings) -> (Array<Room>, Array<(u128, u128)>) {
+fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<u128>) {
     let mut room_settings: RoomSettings = RoomSettings {
         min_rooms: settings.size / 3,
         max_rooms: settings.size,
@@ -246,20 +262,17 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Array<(u128, u128)>) 
     };
 
     let mut rooms: Array<Room> = ArrayTrait::new();
-    let mut floor: Array<(u128, u128)> = ArrayTrait::new();
+    let mut floor: Felt252Dict<u128> = Default::default();
 
-    let mut num_rooms = random_u128(
-        settings.seed + settings.counter, room_settings.min_rooms, room_settings.max_rooms
+    let mut num_rooms = random_with_counter_plus(
+        ref settings, room_settings.min_rooms, room_settings.max_rooms
     );
-    settings.counter += 1;
-
     let mut safety_check: u128 = 256;
     loop {
         let current: Room = generate_new_room(ref settings, @room_settings);
 
-        let valid: bool = is_valid_room(@rooms, num_rooms, @current);
-        if valid {
-            append_room_and_floor(ref rooms, ref floor, current);
+        if is_valid_room(@rooms, num_rooms, @current) {
+            append_room_and_floor(ref rooms, ref floor, current, settings.size);
             num_rooms -= 1;
         }
 
@@ -362,11 +375,11 @@ fn generate_direction(ref settings: Settings) -> Direction {
     }
 }
 
-fn generate_cavern(ref settings: Settings) -> Array<(u128, u128)> {
+fn generate_cavern(ref settings: Settings) -> Felt252Dict<u128> {
     let holes = settings.size / 2;
 
     let mut i = 0;
-    let mut cavern: Array<(u128, u128)> = ArrayTrait::new();
+    let mut cavern: Felt252Dict<u128> = Default::default();
     loop {
         if i == holes {
             break;
@@ -380,7 +393,7 @@ fn generate_cavern(ref settings: Settings) -> Array<(u128, u128)> {
         let mut last_direction: Direction = Direction::LEFT;
         let mut next_direction: Direction = Direction::LEFT;
         loop {
-            cavern.append((x, y));
+            cavern.set_bit(y * settings.size + x);
 
             if is_left(last_direction) {
                 let next_direction = generate_direction(ref settings);
@@ -413,7 +426,7 @@ fn generate_cavern(ref settings: Settings) -> Array<(u128, u128)> {
 }
 
 fn connect_halls_vertical(
-    ref hallways: Array<(u128, u128)>, x: u128, current_y: u128, previous_y: u128
+    ref hallways: Felt252Dict<u128>, x: u128, current_y: u128, previous_y: u128, size: u128
 ) {
     let mut min: u128 = if current_y > previous_y {
         previous_y
@@ -430,13 +443,13 @@ fn connect_halls_vertical(
         if y == max {
             break;
         }
-        hallways.append((x, y));
+        hallways.set_bit(y * size + x);
         y += 1;
     };
 }
 
 fn connect_halls_horizontal(
-    ref hallways: Array<(u128, u128)>, current_x: u128, previous_x: u128, y: u128
+    ref hallways: Felt252Dict<u128>, current_x: u128, previous_x: u128, y: u128, size: u128
 ) {
     let mut min: u128 = if current_x > previous_x {
         previous_x
@@ -453,13 +466,13 @@ fn connect_halls_horizontal(
         if x == max {
             break;
         }
-        hallways.append((x, y));
+        hallways.set_bit(y * size + x);
         x += 1;
     }
 }
 
-fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Array<(u128, u128)> {
-    let mut hallways: Array<(u128, u128)> = ArrayTrait::new();
+fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict<u128> {
+    let mut hallways: Felt252Dict<u128> = Default::default();
 
     let rooms_span = rooms.span();
 
@@ -477,16 +490,28 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Array<(u128
             let mut current_y = *rooms_span.at(i).y + (*rooms_span.at(i).height / 2);
 
             if current_x == previous_x {
-                connect_halls_vertical(ref hallways, current_x, previous_x, current_y);
+                connect_halls_vertical(
+                    ref hallways, current_x, previous_x, current_y, settings.size
+                );
             } else if current_y == previous_y {
-                connect_halls_horizontal(ref hallways, current_x, current_y, previous_y);
+                connect_halls_horizontal(
+                    ref hallways, current_x, current_y, previous_y, settings.size
+                );
             } else {
                 if random_with_counter_plus(ref settings, 1, 2) == 2 {
-                    connect_halls_horizontal(ref hallways, current_x, previous_x, current_y);
-                    connect_halls_vertical(ref hallways, current_x, current_y, previous_y);
+                    connect_halls_horizontal(
+                        ref hallways, current_x, previous_x, current_y, settings.size
+                    );
+                    connect_halls_vertical(
+                        ref hallways, current_x, current_y, previous_y, settings.size
+                    );
                 } else {
-                    connect_halls_vertical(ref hallways, current_x, previous_x, current_y);
-                    connect_halls_horizontal(ref hallways, current_x, current_y, previous_y);
+                    connect_halls_vertical(
+                        ref hallways, current_x, previous_x, current_y, settings.size
+                    );
+                    connect_halls_horizontal(
+                        ref hallways, current_x, current_y, previous_y, settings.size
+                    );
                 }
             }
 
@@ -502,25 +527,25 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Array<(u128
 
 
 fn generate_points(
-    ref settings: Settings, ref map: Array<(u128, u128)>, probability: u128
-) -> Array<(u128, u128)> {
-    let mut points: Array<(u128, u128)> = ArrayTrait::new();
+    ref settings: Settings, ref map: Felt252Dict<u128>, probability: u128
+) -> Felt252Dict<u128> {
+    let mut points: Felt252Dict<u128> = Default::default();
 
     let mut prob: u128 = random_with_counter_plus(ref settings, 0, probability);
     if (prob == 0) {
         prob = 1;
     }
 
-    let mut counter = 0;
+    let mut counter: u128 = 0;
+    let limit: u128 = settings.size * settings.size;
     loop {
-        if counter == 1 {
+        if counter == limit {
             break;
         }
-        // maybe should build a dict for indexing '1' in map when generate_something() running
-        // anyway deadline is the most powerful thing
 
-        let mut count = 0;
-        // loop{loop{loop{}}};
+        if map.get_bit(counter) == 1 && random_with_counter_plus(ref settings,0,100) <= prob {
+            points.set_bit(counter);
+        }
 
         counter += 1;
     };

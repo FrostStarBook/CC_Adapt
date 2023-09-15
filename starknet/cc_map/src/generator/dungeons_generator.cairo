@@ -73,6 +73,51 @@ impl MapImpl of MapTrait {
         let value: u128 = self.get(quotient.into());
         value.right_shift(remainder) & 1
     }
+
+    fn add_bit(ref self: Felt252Dict<u128>, ref other: Felt252Dict<u128>, length: u128) {
+        let mut limit: u128 = length;
+        loop {
+            if limit == 0 {
+                break;
+            }
+            let key: felt252 = limit.into();
+            self.insert(key, (self.get(key) | (other.get(key))));
+            limit -= 1;
+        }
+    }
+
+    fn subtract_bit(ref self: Felt252Dict<u128>, ref other: Felt252Dict<u128>, length: u128) {
+        let mut limit: u128 = length;
+        loop {
+            if limit == 0 {
+                break;
+            }
+            let key: felt252 = limit.into();
+            self.insert(key, (self.get(key) & ~(other.get(key))));
+            limit -= 1;
+        }
+    }
+
+    fn count_bit(ref self: Felt252Dict<u128>, length: u128) -> u128 {
+        let mut length = length;
+        let mut result = 0;
+        loop {
+            if length == 0 {
+                break;
+            }
+            let key: felt252 = (length - 1).into();
+            let mut value: u128 = self.get(key);
+            loop {
+                if value == 0 {
+                    break;
+                }
+                value = value & (value - 1);
+                result += 1;
+            };
+            length -= 1;
+        };
+        result
+    }
 }
 
 #[test]
@@ -87,54 +132,91 @@ fn test_set_bit() {
     assert(map.get_bit(20) == 1, 'get bit');
 }
 
-fn add_mark(floor: Array<(u128, u128)>, hallways: Array<(u128, u128)>) -> Array<(u128, u128)> {
-    floor
-}
-
 fn random_shift_counter_plus(ref settings: Settings, min: u128, max: u128) -> u128 {
     let result = random_u128(settings.seed.left_shift(settings.counter), min, max);
     settings.counter += 1;
     result
 }
 
+fn get_length(size: u128) -> u128 {
+    size * size / 128 + 1
+}
+
 fn build_settings(seed: u128, size: u128) -> Settings {
-    Settings { size: size, seed: seed, length: size, counter: 0 }
+    Settings { size: size, seed: seed, length: get_length(size), counter: 0 }
 }
 
 fn get_layout(seed: u128, size: u128) -> (Felt252Dict<u128>, u128) {
     let mut settings: Settings = build_settings(seed, size);
-
     let mut structure: u128 = 0;
     if random_shift_counter_plus(ref settings, 0, 100) > 30 {
-        {}
-    //    let (mut rooms:Array<Rooms>,mut floor:Array<(u128,u128)>) = generate_rooms(settings);
-    //    let mut hallways:Array<(u128,u128)> = generate_hallways(settings,rooms);
-
-    // (add_mark(ref floor, hallways), structure)
+        let (mut rooms, mut floor) = generate_rooms(ref settings);
+        let mut hallways: Felt252Dict = generate_hallways(ref settings, @rooms);
+        floor.add_bit(ref hallways, settings.length);
+        (floor, structure)
     } else {
         structure = 1;
-    // let mut cavern:Array<(u128,u128)> = generate_cavern(settings);
-    // (cavern, structure)
+        let cavern: Felt252Dict = generate_cavern(ref settings);
+        (cavern, structure)
     }
-    (Default::default(), structure)
 }
 
 fn get_entities(seed: u128, size: u128) -> (Array<u128>, Array<u128>, Array<u128>) {
-    // let (mut points:Array<(u128,u128)>,mut doors:Array<(u128,u128)>) = generate_entities(seed,size);
-    // parse_entities(size,points,doors)
-    (ArrayTrait::new(), ArrayTrait::new(), ArrayTrait::new())
+    let (mut points, mut doors) = generate_entities(seed, size);
+    parse_entities(size, ref points, ref doors)
 }
 
-fn get_points(seed: u128, size: u128) -> (Array<(u128, u128)>, u128) {
-    // let mut (mut points:Array<(u128,u128)>,) = generate_entities(seed,size);
-    // (points, points.len())
-    (ArrayTrait::new(), 0)
+fn parse_entities(
+    size: u128, ref points: Felt252Dict<u128>, ref doors: Felt252Dict<u128>
+) -> (Array<u128>, Array<u128>, Array<u128>) {
+    let mut x_arr: Array<u128> = ArrayTrait::new();
+    let mut y_arr: Array<u128> = ArrayTrait::new();
+    let mut entity_type: Array<u128> = ArrayTrait::new();
+
+    // let mut entity_count: u128 = points.count_bit(get_length(size))
+    // + doors.count_bit(get_length(size));
+    let mut counter: u128 = 0;
+
+    let mut y: u128 = 0;
+    loop {
+        if y == size {
+            break;
+        }
+
+        let mut x: u128 = 0;
+        loop {
+            if x == size {
+                break;
+            }
+
+            if doors.get_bit(counter) == 1 {
+                x_arr.append(x);
+                y_arr.append(y);
+                entity_type.append(0);
+            }
+            if points.get_bit(counter) == 1 {
+                x_arr.append(x);
+                y_arr.append(y);
+                entity_type.append(1);
+            }
+            counter += 1;
+
+            x += 1;
+        };
+        y += 1;
+    };
+
+    (x_arr, y_arr, entity_type)
 }
 
-fn get_doors(seed: u128, size: u128) -> (Array<(u128, u128)>, u128) {
-    // let (,mut doors:Array<(u128,u128)>) = generate_entities(seed,size);
-    // (doors, doors.len())
-    (ArrayTrait::new(), 0)
+fn get_points(seed: u128, size: u128) -> (Felt252Dict<u128>, u128) {
+    let (mut points, mut doors) = generate_entities(seed, size);
+    (points, points.count_bit(get_length(size)))
+}
+
+fn get_doors(seed: u128, size: u128) -> (Felt252Dict<u128>, u128) {
+    let (mut points, mut doors) = generate_entities(seed, size);
+    (doors, doors.count_bit(get_length(size)))
 }
 
 fn square_root(origin: u128) -> u128 {
@@ -155,34 +237,40 @@ fn square_root(origin: u128) -> u128 {
 fn generate_entities(seed: u128, size: u128) -> (Felt252Dict<u128>, Felt252Dict<u128>) {
     let mut settings: Settings = build_settings(seed, size);
 
-    if random_u128(settings.seed + settings.counter, 0, 100) > 30 {
-        settings.counter += 1;
+    if random_with_counter_plus(ref settings, 0, 100) > 30 {
+        let (mut rooms, mut floor) = generate_rooms(ref settings);
 
-        //    let (mut rooms:Array<(u128, u128)>, mut floor:Array<(u128, u128)>) = generate_rooms(settings);
+        let mut hallways = generate_hallways(ref settings, @rooms);
 
-        //    let mut hallways:Array<(u128, u128)> = generate_hallways(settings, rooms);
+        // hallways does not take the bit which floor had mark already
+        hallways.subtract_bit(ref floor, settings.length);
 
-        //    // hallways does not take the bit which floor had mark already
+        let hallways_points: Felt252Dict<u128> = if hallways.count_bit(settings.length) > 0 {
+            generate_points(
+                ref settings, ref hallways, 40 / square_root(hallways.count_bit(settings.length))
+            )
+        } else {
+            Default::default()
+        };
 
-        //    let mut hallways_points:Array<(u128, u128)> = if hallways.len() > 0 {
-        //     generate_points(settings,hallways,40/square_root(hallways.len()))
-        //    }else{
-        //        array![]
-        //    }
-        //    (generate_points(settings,floor, 12/square_root(settings.size - 6)), hallways_points)
-
-        (Default::default(), Default::default())
+        (
+            generate_points(ref settings, ref floor, 12 / square_root(settings.size - 6)),
+            hallways_points
+        )
     } else {
-        settings.counter += 1;
+        let mut cavern: Felt252Dict<u128> = generate_cavern(ref settings);
+        let num_tiles: u128 = cavern.count_bit(settings.length);
 
-        // let mut cavern:Array<(u128, u128)> = generate_cavern(settings);
-        // let mut points:Array<(u128,u128)> = generate_points(settings,cavern,12/square_root(cavern.len()-6));
-        // let mut doors:Array<(u128,u128)> = generate_points(settings,cavern,40/square_root(cavern.len()));
+        let mut points: Felt252Dict<u128> = generate_points(
+            ref settings, ref cavern, 12 / square_root(num_tiles - 6)
+        );
+        let mut doors: Felt252Dict<u128> = generate_points(
+            ref settings, ref cavern, 40 / square_root(num_tiles)
+        );
 
-        // // the points does not take the bit which floor had mark already
-        // (points,doors)
+        points.subtract_bit(ref doors, settings.length);
 
-        (Default::default(), Default::default())
+        (points, doors)
     }
 }
 
@@ -231,24 +319,19 @@ fn append_room_and_floor(
     ref rooms: Array<Room>, ref floor: Felt252Dict<u128>, current: Room, size: u128
 ) {
     rooms.append(current);
-
     let mut y = current.y;
     loop {
         if y == current.y + current.height {
             break;
         }
-
         let mut x = current.x;
         loop {
             if x == current.x + current.width {
                 break;
             }
-
             floor.set_bit(y * size + x);
-
             x += 1;
         };
-
         y += 1;
     };
 }
@@ -275,13 +358,11 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<u128>) {
             append_room_and_floor(ref rooms, ref floor, current, settings.size);
             num_rooms -= 1;
         }
-
         if safety_check == 0 {
             break;
         }
         safety_check -= 1;
     };
-
     (rooms, floor)
 }
 
@@ -543,7 +624,7 @@ fn generate_points(
             break;
         }
 
-        if map.get_bit(counter) == 1 && random_with_counter_plus(ref settings,0,100) <= prob {
+        if map.get_bit(counter) == 1 && random_with_counter_plus(ref settings, 0, 100) <= prob {
             points.set_bit(counter);
         }
 

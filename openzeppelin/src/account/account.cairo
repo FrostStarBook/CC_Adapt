@@ -238,8 +238,6 @@ mod Account {
         res
     }
 
-    use core::result::ResultTrait;
-
     #[internal]
     fn _execute_single_call(call: Call) -> Span<felt252> {
         let Call{to, selector, calldata } = call;

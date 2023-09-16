@@ -28,6 +28,10 @@ fn random_s(seed: felt252, minNum: u128, maxNum: u128) -> u128 {
     return (t.low % range) + minNum;
 }
 
+fn random_u128(seed: u128, min_num: u128, max_num: u128) -> u128 {
+    seed % (max_num - min_num) + min_num
+}
+
 #[test]
 #[available_gas(30000000)]
 #[ignore]

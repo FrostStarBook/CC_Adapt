@@ -1,91 +1,83 @@
-#[starknet::contract]
-mod example {
-    use dict::Felt252DictTrait;
-    use dict::Felt252DictEntryTrait;
-    use debug::PrintTrait;
-
-    #[storage]
-    struct Storage {}
-
-    fn test() {
-        let mut dict: Felt252Dict<u8> = Default::default();
-
-        custom_insert(ref dict, '0', 100);
-
-        let val = custom_get(ref dict, '0');
-
-        assert(val == 100, 'Expecting 100');
-
-        let mut dic: Felt252Dict<Nullable<Array<u8>>> = Default::default();
-
-        // dic.squash();
-    }
+use debug::PrintTrait;
+use starknet::ContractAddress;
 
 
-    fn custom_insert<
-        T,
-        impl TDefault: Felt252DictValue<T>,
-        impl TDestruct: Destruct<T>,
-        impl TDrop: Drop<T>
-    >(
-        ref dict: Felt252Dict<T>, key: felt252, value: T
-    ) {
-        // Get the last entry associated with `key`
-        // Notice that if `key` does not exists, _prev_value will
-        // be the default value of T.
-        let (entry, _prev_value) = dict.entry(key);
+fn devide() -> u128 {
+    let x: u128 = 1;
+    let y: u128 = 2;
 
-        // Insert `entry` back in the dictionary with the updated value,
-        // and recieve ownership of the dictionary
-        dict = entry.finalize(value);
-    }
-
-    fn custom_get<T, impl TDefault: Felt252DictValue<T>, impl TDrop: Drop<T>, impl TCopy: Copy<T>>(
-        ref dict: Felt252Dict<T>, key: felt252
-    ) -> T {
-        // Get the new entry and the previous value held at `key`
-        let (entry, prev_value) = dict.entry(key);
-
-        // Store the value to return
-        let return_value = prev_value;
-
-        // Update the entry with `prev_value` and get back ownership of the dictionary
-        dict = entry.finalize(prev_value);
-
-        // Return the read value
-        return_value
-    }
+    x / y
 }
 
-use array::{ArrayTrait, SpanTrait};
-use box::BoxTrait;
-use dict::Felt252DictTrait;
-use nullable::{NullableTrait, nullable_from_box, match_nullable, FromNullableResult};
+fn devide_u64() -> u64 {
+    let x: u64 = 1;
+    let y: u64 = 2;
 
-fn main() {
-    // Create the dictionary
-    let mut d: Felt252Dict<Nullable<Span<felt252>>> = Default::default();
+    x / y
+}
 
-    // Crate the array to insert
-    let mut a = ArrayTrait::new();
-    a.append(8);
-    a.append(9);
-    a.append(10);
+fn devide2() -> u256 {
+    let x: u256 = 1;
+    let y: u256 = 2;
 
-    // Insert it as a `Span`
-    d.insert(0, nullable_from_box(BoxTrait::new(a.span())));
+    x / y
+}
 
-    // Get value back
-    let val = d.get(0);
 
-    // Search the value and assert it is not null
-    let span = match match_nullable(val) {
-        FromNullableResult::Null(()) => panic_with_felt252('No value found'),
-        FromNullableResult::NotNull(val) => val.unbox(),
-    };
+#[test]
+#[available_gas(30000)]
+#[ignore]
+fn it_works() {
+    let result: u128 = devide();
 
-    // Verify we are having the right values
-    assert(*span.at(0) == 8, 'Expecting 8');
-    assert(*span.at(1) == 9, 'Expecting 9');
-    assert(*span.at(2) == 10, 'Expecting 10');
+    result.print();
+
+    assert(result == 1, result.into());
+}
+
+#[test]
+#[available_gas(30000)]
+#[ignore]
+fn it_works_u64() {
+    let result: u64 = devide_u64();
+
+    result.print();
+
+    assert(result == 1, result.into());
+}
+
+#[test]
+#[available_gas(30000)]
+#[ignore]
+fn it_works2() {
+    let result: u256 = devide2();
+
+    result.print();
+
+    assert(result == 1, result.try_into().unwrap());
+}
+
+#[derive(starknet::Event)]
+struct Transfer {
+    #[key]
+    from: ContractAddress,
+    #[key]
+    to: ContractAddress,
+    amount: u256
+}
+
+#[derive(starknet::Event)]
+struct Approve {
+    #[key]
+    owner: ContractAddress,
+    #[key]
+    spender: ContractAddress,
+    amount: u256
+}
+
+#[event]
+#[derive(starknet::Event)]
+enum Event {
+    Transfer: Transfer,
+    Approve: Approve
 }

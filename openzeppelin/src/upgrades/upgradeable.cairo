@@ -3,7 +3,6 @@ mod Upgradeable {
     use starknet::ClassHash;
     use starknet::SyscallResult;
     use zeroable::Zeroable;
-    use core::result::ResultTrait;
 
     #[storage]
     struct Storage {}

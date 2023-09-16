@@ -5,8 +5,9 @@ check version
  scarb --version    
 ```
 ```
-scarb 0.6.2 (c07fa6155 2023-08-15)
-cairo: 2.1.1 (https://crates.io/crates/cairo-lang-compiler/2.1.1)`
+scarb 0.7.0 (58cc88efb 2023-08-23)
+cairo: 2.2.0 (https://crates.io/crates/cairo-lang-compiler/2.2.0)
+sierra: 1.3.0
 
 ```
 

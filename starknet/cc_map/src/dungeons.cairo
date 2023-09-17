@@ -2,23 +2,23 @@
 mod Dungeons {
     use array::ArrayTrait;
 
-    #[derive(Drop, Serde)]
+    #[derive(Copy, Drop, Serde)]
     struct EntityData {
-        x: Array<u8>,
-        y: Array<u8>,
-        entityType: Array<u8>,
+        x: Span<u8>,
+        y: Span<u8>,
+        entity_data: Span<u8>
     }
 
-    #[derive(Drop, Serde)]
+    #[derive(Copy, Drop, Serde)]
     struct Dungeon {
         size: u8,
         environment: u8,
-        structure: u8, // crypt or cavern
+        structure: u8,
         legendary: u8,
-        layout: felt252,
+        layout: Span<(u8, u8)>,
         entities: EntityData,
         affinity: felt252,
-        dungeonName: felt252,
+        dungeon_name: Span<felt252>
     }
 
     #[storage]

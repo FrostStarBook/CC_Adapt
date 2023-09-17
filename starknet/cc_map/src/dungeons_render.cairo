@@ -3,16 +3,16 @@ mod DungeonsRender {
     use array::ArrayTrait;
     use option::OptionTrait;
     use traits::{Into, TryInto};
-
+    use byte_array::{ByteArray};
     use cc_map::interface::IDungeonsRender;
     use cc_map::dungeons::Dungeons::Dungeon;
 
     /// Data structure that stores our different maps (layout, doors, points)
     #[derive(Drop)]
     struct Maps {
-        layout: Array<felt252>,
-        doors: Array<felt252>,
-        points: Array<felt252>,
+        layout: Span<(u8, u8)>,
+        doors: Span<(u8, u8)>,
+        points: Span<(u8, u8)>,
     }
 
     /// Helper variables when iterating through and drawing dungeon tiles
@@ -20,7 +20,7 @@ mod DungeonsRender {
     struct RenderHelper {
         pixel: u256,
         start: u256,
-        layout: Array<felt252>,
+        layout: Span<(u8, u8)>,
         parts: felt252,
         counter: u256,
         numRects: u256,
@@ -121,16 +121,45 @@ mod DungeonsRender {
             let mut output: Array<felt252> = ArrayTrait::new();
 
             // Generate dungeon
-            // output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entityType);
+            output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entityType);
 
-            let mut size: Array<felt252> = ArrayTrait::new();
-            size.append(dungeon.size.into());
-            size.append('x');
-            size.append(dungeon.size.into());
             // Base64 Encode svg and output
-            let mut json: Array<felt252> = ArrayTrait::new();
+            let mut json: ByteArray = Default::default();
             json.append('{"name": "Crypts and Caverns #');
             json.append(tokenId.try_into().unwrap());
+            json.append('", "description": "Crypts and Caverns is an onchain map generator that produces an infinite set of dungeons. Enemies, treasure, etc intentionally omitted for others to interpret. Feel free to use Crypts and Caverns in any way you want.", "attributes": [ {"trait_type": "name", "value": "');
+            json.append(dungeon.dungeon_name());
+            json.append('"}, {"trait_type": "size", "value": "');
+            json.append(dungeon.size.into());
+            json.append('x');
+            json.append(dungeon.size.into());
+            json.append('"}, {"trait_type": "environment", "value": "');
+            json.append(self.environmentName.read(dungeon.environment()));
+            json.append('"}, {"trait_type": "doors", "value": "');
+            json.append(entities[1]);
+            json.append('"}, {"trait_type": "points of interest", "value": "');
+            json.append(entities[0]);
+            json.append('"}, {"trait_type": "affinity", "value": "');
+            json.append(dungeon.affinity());
+            json.append('"}, {"trait_type": "legendary", "value": "');
+            if (dungeon.legendary == 1) {
+                json.append('Yes');
+            } else {
+                json.append('No');
+            }
+            if (dungeon.structure == 0) {
+                json.append('Crypt');
+            } else {
+                json.append('Cavern');
+            }   
+            json.append('"}],"image": "data:image/svg+xml;base64,');
+            // TODO base64 encode svg
+
+            json.append('"}');
+            // TODO base64 encode json
+
+            output.append('data:application/json;base64,');
+            output.append(json);
 
             output
         }
@@ -207,6 +236,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    #[available_gas(30000000)]
     fn test_draw_tile() {
         let mut row: Array<felt252> = ArrayTrait::new();
         row.append('row');
@@ -219,6 +249,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    #[available_gas(30000000)]
     fn test_get_witdth() {
         let (start, pixel) = InternalFunctions::getWidth(4);
         assert(pixel == 50, 'pixel is right');

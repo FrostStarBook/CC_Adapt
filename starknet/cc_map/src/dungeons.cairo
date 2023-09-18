@@ -1,6 +1,7 @@
 #[starknet::contract]
 mod Dungeons {
     use array::ArrayTrait;
+    use openzeppelin::token::erc721::ERC721;
 
     #[derive(Drop, Serde)]
     struct EntityData {

@@ -1,8 +1,7 @@
 use core::array::{Array, ArrayTrait, Span, SpanTrait};
 use box::BoxTrait;
 use debug::PrintTrait;
-use nullable::{NullableTrait, nullable_from_box, match_nullable, FromNullableResult};
-
+use nullable::{NullableTrait, FromNullableResult, nullable_from_box, match_nullable};
 use starknet::ContractAddress;
 use openzeppelin::token::erc20::ERC20;
 use cc_map::utils::random::{random};
@@ -63,8 +62,8 @@ enum Direction {
 
 #[generate_trait]
 impl MapImpl of MapTrait {
-    fn select(ref self: Felt252Dict<Nullable<u256>>, key: felt252) -> u256 {
-        match match_nullable(self.get(key)) {
+    fn select(ref self: Felt252Dict<Nullable<u256>>, key: u256) -> u256 {
+        match match_nullable(self.get(key.try_into().expect('invalid key'))) {
             FromNullableResult::Null(()) => {
                 self.update(key, 0);
                 0
@@ -73,26 +72,21 @@ impl MapImpl of MapTrait {
         }
     }
 
-    fn update(ref self: Felt252Dict<Nullable<u256>>, key: felt252, value: u256) {
-        self.insert(key, nullable_from_box(BoxTrait::new(value)));
+    fn update(ref self: Felt252Dict<Nullable<u256>>, key: u256, value: u256) {
+        self.insert(key.try_into().expect('invalid key'), nullable_from_box(BoxTrait::new(value)));
     }
 
     fn set_bit(ref self: Felt252Dict<Nullable<u256>>, position: u256) {
         let quotient = position / 256;
         let remainder = position % 256;
-        let key: felt252 = quotient.try_into().expect('invalid key');
-        self
-            .update(
-                key,
-                (self.select(quotient.try_into().expect('invalid key'))) | (1.left_shift(remainder))
-            );
+
+        self.update(quotient, (self.select(quotient)) | (1.left_shift(remainder)));
     }
 
     fn get_bit(ref self: Felt252Dict<Nullable<u256>>, position: u256) -> u256 {
         let quotient = position / 256;
         let remainder = position % 256;
-        let key: felt252 = quotient.try_into().expect('invalid key');
-        let value: u256 = self.select(quotient.try_into().expect('invalid key'));
+        let value: u256 = self.select(quotient);
         value.right_shift(remainder) & 1
     }
 
@@ -104,7 +98,7 @@ impl MapImpl of MapTrait {
             if limit == 0 {
                 break;
             }
-            let key: felt252 = (limit - 1).try_into().expect('invalid key');
+            let key = limit - 1;
             self.update(key, (self.select(key) | (other.select(key))));
             limit -= 1;
         }
@@ -118,7 +112,7 @@ impl MapImpl of MapTrait {
             if limit == 0 {
                 break;
             }
-            let key: felt252 = (limit - 1).try_into().expect('invalid key');
+            let key = limit - 1;
             self.update(key, (self.select(key) & ~(other.select(key))));
             limit -= 1;
         }
@@ -131,7 +125,7 @@ impl MapImpl of MapTrait {
             if length == 0 {
                 break;
             }
-            let key: felt252 = (length - 1).try_into().expect('invalid key');
+            let key = length - 1;
             let mut value: u256 = self.select(key);
             loop {
                 if value == 0 {
@@ -150,7 +144,7 @@ impl MapImpl of MapTrait {
 #[available_gas(30000000)]
 fn test_set_bit() {
     let mut map: Felt252Dict<Nullable<u256>> = Default::default();
-    let key: felt252 = 0.into();
+    let key = 0;
     // for test only, it won't be used this way
     map.update(key, 2);
     map.set_bit(20);
@@ -160,7 +154,6 @@ fn test_set_bit() {
     assert(map.count_bit(1) == 2, 'count bit');
 
     let mut another_map: Felt252Dict<Nullable<u256>> = Default::default();
-    let key: felt252 = 0.into();
     // for test only, it won't be used this way
     another_map.update(key, 3);
     another_map.set_bit(30);
@@ -241,9 +234,7 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
                 let next_direction = generate_direction(ref settings);
                 last_direction = next_direction;
             } else {
-                let mut direction_seed: u256 = random_shift_counter_plus(
-                   ref settings, 0, 100
-                );
+                let mut direction_seed: u256 = random_shift_counter_plus(ref settings, 0, 100);
 
                 if direction_seed <= 25 {
                     next_direction = clockwise_rotation(last_direction);
@@ -673,5 +664,4 @@ fn test_sqr() {
 
 #[test]
 #[available_gas(300000000)]
-fn test_generate_room() {  
-}
+fn test_generate_room() {}

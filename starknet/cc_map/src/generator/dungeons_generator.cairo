@@ -80,7 +80,7 @@ impl MapImpl of MapTrait {
             if limit == 0 {
                 break;
             }
-            let key: felt252 = limit.into();
+            let key: felt252 = (limit - 1).into();
             self.insert(key, (self.get(key) | (other.get(key))));
             limit -= 1;
         }
@@ -92,7 +92,7 @@ impl MapImpl of MapTrait {
             if limit == 0 {
                 break;
             }
-            let key: felt252 = limit.into();
+            let key: felt252 = (limit - 1).into();
             self.insert(key, (self.get(key) & ~(other.get(key))));
             limit -= 1;
         }
@@ -125,11 +125,25 @@ impl MapImpl of MapTrait {
 fn test_set_bit() {
     let mut map: Felt252Dict<u128> = Default::default();
     let key: felt252 = 0.into();
+    // for test only, it won't be used this way
     map.insert(key, 2);
     map.set_bit(20);
-    map.get(key).print();
     assert(map.get(key) == 1048578, 'set bit');
-    assert(map.get_bit(20) == 1, 'get bit');
+    assert(map.get_bit(19) == 0, 'get bit of index 19');
+    assert(map.get_bit(20) == 1, 'get bit of index 20');
+    assert(map.count_bit(1) == 2, 'count bit');
+
+    let mut another_map: Felt252Dict<u128> = Default::default();
+    let key: felt252 = 0.into();
+    // for test only, it won't be used this way
+    another_map.insert(key, 3);
+    another_map.set_bit(30);
+    assert(another_map.count_bit(1)==3, 'count bit');
+
+    map.add_bit(ref another_map, 1);
+    assert(map.count_bit(1) == 4, 'add bit');
+    map.subtract_bit(ref another_map, 1);
+    assert(map.count_bit(1) == 1, 'subtract bit');
 }
 
 fn random_shift_counter_plus(ref settings: Settings, min: u128, max: u128) -> u128 {

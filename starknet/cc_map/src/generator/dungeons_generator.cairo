@@ -51,11 +51,15 @@ struct Room {
     height: u256
 }
 
-fn random_with_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {
-    let result = random(settings.seed + settings.counter, min, max);
-    settings.counter += 1;
-    result
+#[derive(Copy, Drop)]
+enum Direction {
+    LEFT,
+    UP,
+    RIGHT,
+    DOWN,
 }
+
+// ------------------------------------------- MapTrait -------------------------------------------
 
 #[generate_trait]
 impl MapImpl of MapTrait {
@@ -168,19 +172,7 @@ fn test_set_bit() {
     assert(map.count_bit(1) == 1, 'subtract bit');
 }
 
-fn random_shift_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {
-    let result = random(settings.seed.left_shift(settings.counter), min, max);
-    settings.counter += 1;
-    result
-}
-
-fn get_length(size: u256) -> u256 {
-    size * size / 256 + 1
-}
-
-fn build_settings(seed: u256, size: u256) -> Settings {
-    Settings { size: size, seed: seed, length: get_length(size), counter: 0 }
-}
+// ------------------------------------------- DungeonGenerator -------------------------------------------
 
 fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
     let mut settings: Settings = build_settings(seed, size);
@@ -195,6 +187,164 @@ fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
         let cavern: Felt252Dict = generate_cavern(ref settings);
         (cavern, structure)
     }
+}
+
+fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<u256>>) {
+    let mut room_settings: RoomSettings = RoomSettings {
+        min_rooms: settings.size / 3,
+        max_rooms: settings.size,
+        min_room_size: 2,
+        max_room_size: settings.size / 3
+    };
+
+    let mut rooms: Array<Room> = ArrayTrait::new();
+    let mut floor: Felt252Dict<Nullable<u256>> = Default::default();
+
+    let mut num_rooms = random_with_counter_plus(
+        ref settings, room_settings.min_rooms, room_settings.max_rooms
+    );
+    let mut safety_check: u256 = 256;
+    loop {
+        let current: Room = generate_new_room(ref settings, @room_settings);
+
+        if is_valid_room(@rooms, num_rooms, @current) {
+            append_room_and_floor(ref rooms, ref floor, current, settings.size);
+            num_rooms -= 1;
+        }
+        if safety_check == 0 {
+            break;
+        }
+        safety_check -= 1;
+    };
+    (rooms, floor)
+}
+
+fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
+    let holes = settings.size / 2;
+
+    let mut i = 0;
+    let mut cavern: Felt252Dict<Nullable<u256>> = Default::default();
+    loop {
+        if i == holes {
+            break;
+        }
+
+        let x = random_shift_counter_plus(ref settings, 0, 100);
+        let y = random_shift_counter_plus(ref settings, 0, 100);
+
+        let mut last_direction: Direction = Direction::LEFT;
+        let mut next_direction: Direction = Direction::LEFT;
+        loop {
+            cavern.set_bit(y * settings.size + x);
+
+            if is_left(last_direction) {
+                let next_direction = generate_direction(ref settings);
+                last_direction = next_direction;
+            } else {
+                let mut direction_seed: u256 = random_shift_counter_plus(
+                   ref settings, 0, 100
+                );
+
+                if direction_seed <= 25 {
+                    next_direction = clockwise_rotation(last_direction);
+                } else if direction_seed <= 50 {
+                    next_direction = counterclockwise_rotation(last_direction);
+                } else {
+                    next_direction = last_direction;
+                }
+            }
+
+            if !(x > 0 && y > 0 && x < settings.size && y < settings.size) {
+                break;
+            }
+            let (x, y) = get_direction(x, y, next_direction);
+        };
+
+        i += 1;
+    };
+
+    cavern
+}
+
+fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict<Nullable<u256>> {
+    let mut hallways: Felt252Dict<Nullable<u256>> = Default::default();
+
+    let rooms_span = rooms.span();
+
+    if !rooms_span.is_empty() {
+        let mut previous_x: u256 = *rooms_span.at(0).x + (*rooms_span.at(0).width / 2);
+        let mut previous_y: u256 = *rooms_span.at(0).y + (*rooms_span.at(0).height / 2);
+
+        let mut i = 1;
+        loop {
+            if i == rooms_span.len() {
+                break;
+            }
+
+            let mut current_x = *rooms_span.at(i).x + (*rooms_span.at(i).width / 2);
+            let mut current_y = *rooms_span.at(i).y + (*rooms_span.at(i).height / 2);
+
+            if current_x == previous_x {
+                connect_halls_vertical(
+                    ref hallways, current_x, previous_x, current_y, settings.size
+                );
+            } else if current_y == previous_y {
+                connect_halls_horizontal(
+                    ref hallways, current_x, current_y, previous_y, settings.size
+                );
+            } else {
+                if random_with_counter_plus(ref settings, 1, 2) == 2 {
+                    connect_halls_horizontal(
+                        ref hallways, current_x, previous_x, current_y, settings.size
+                    );
+                    connect_halls_vertical(
+                        ref hallways, current_x, current_y, previous_y, settings.size
+                    );
+                } else {
+                    connect_halls_vertical(
+                        ref hallways, current_x, previous_x, current_y, settings.size
+                    );
+                    connect_halls_horizontal(
+                        ref hallways, current_x, current_y, previous_y, settings.size
+                    );
+                }
+            }
+
+            previous_x = current_x;
+            previous_y = current_y;
+
+            i += 1;
+        };
+    }
+
+    hallways
+}
+
+fn generate_points(
+    ref settings: Settings, ref map: Felt252Dict<Nullable<u256>>, probability: u256
+) -> Felt252Dict<Nullable<u256>> {
+    let mut points: Felt252Dict<Nullable<u256>> = Default::default();
+
+    let mut prob: u256 = random_with_counter_plus(ref settings, 0, probability);
+    if (prob == 0) {
+        prob = 1;
+    }
+
+    let mut counter: u256 = 0;
+    let limit: u256 = settings.size * settings.size;
+    loop {
+        if counter == limit {
+            break;
+        }
+
+        if map.get_bit(counter) == 1 && random_with_counter_plus(ref settings, 0, 100) <= prob {
+            points.set_bit(counter);
+        }
+
+        counter += 1;
+    };
+
+    points
 }
 
 fn get_entities(seed: u256, size: u256) -> (Array<u256>, Array<u256>, Array<u256>) {
@@ -253,28 +403,6 @@ fn get_points(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
 fn get_doors(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
     let (mut points, mut doors) = generate_entities(seed, size);
     (doors, doors.count_bit(get_length(size)))
-}
-
-fn square_root(origin: u256) -> u256 {
-    let mut x = origin;
-    let mut y = (x + 1) / 2;
-
-    loop {
-        if y >= x {
-            break;
-        }
-        x = y;
-        y = (origin / y + y) / 2;
-    };
-
-    return x;
-}
-
-#[test]
-#[available_gas(30000000)]
-fn test_sqr() {
-    assert(square_root(17) == 4, 'compute square root of 17');
-    assert(square_root(24) == 4, 'compute square root of 24');
 }
 
 fn generate_entities(
@@ -379,42 +507,58 @@ fn append_room_and_floor(
     };
 }
 
-fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<u256>>) {
-    let mut room_settings: RoomSettings = RoomSettings {
-        min_rooms: settings.size / 3,
-        max_rooms: settings.size,
-        min_room_size: 2,
-        max_room_size: settings.size / 3
+fn connect_halls_vertical(
+    ref hallways: Felt252Dict<Nullable<u256>>,
+    x: u256,
+    current_y: u256,
+    previous_y: u256,
+    size: u256
+) {
+    let mut min: u256 = if current_y > previous_y {
+        previous_y
+    } else {
+        current_y
     };
-
-    let mut rooms: Array<Room> = ArrayTrait::new();
-    let mut floor: Felt252Dict<Nullable<u256>> = Default::default();
-
-    let mut num_rooms = random_with_counter_plus(
-        ref settings, room_settings.min_rooms, room_settings.max_rooms
-    );
-    let mut safety_check: u256 = 256;
+    let mut max: u256 = if current_y > previous_y {
+        current_y
+    } else {
+        previous_y
+    };
+    let mut y = min;
     loop {
-        let current: Room = generate_new_room(ref settings, @room_settings);
-
-        if is_valid_room(@rooms, num_rooms, @current) {
-            append_room_and_floor(ref rooms, ref floor, current, settings.size);
-            num_rooms -= 1;
-        }
-        if safety_check == 0 {
+        if y == max {
             break;
         }
-        safety_check -= 1;
+        hallways.set_bit(y * size + x);
+        y += 1;
     };
-    (rooms, floor)
 }
 
-#[derive(Copy, Drop)]
-enum Direction {
-    LEFT,
-    UP,
-    RIGHT,
-    DOWN,
+fn connect_halls_horizontal(
+    ref hallways: Felt252Dict<Nullable<u256>>,
+    current_x: u256,
+    previous_x: u256,
+    y: u256,
+    size: u256
+) {
+    let mut min: u256 = if current_x > previous_x {
+        previous_x
+    } else {
+        current_x
+    };
+    let mut max: u256 = if current_x > previous_x {
+        current_x
+    } else {
+        previous_x
+    };
+    let mut x = min;
+    loop {
+        if x == max {
+            break;
+        }
+        hallways.set_bit(y * size + x);
+        x += 1;
+    }
 }
 
 fn get_direction(base_x: u256, base_y: u256, direction: Direction) -> (u256, u256) {
@@ -425,21 +569,6 @@ fn get_direction(base_x: u256, base_y: u256, direction: Direction) -> (u256, u25
         Direction::DOWN => (base_x, base_y + 1),
     }
 }
-
-// fn left_direction(ref settings:Settings) -> Direction {
-//     let direction: u256 = random(settings.seed.left_shift(settings.counter), 1, 4);
-//     settings.counter +=1;
-
-//     if direction == 0 {
-//         Direction::LEFT
-//     } else if direction == 1 {
-//         Direction::UP
-//     } else if direction == 2 {
-//         Direction::RIGHT
-//     } else {
-//         Direction::DOWN
-//     }
-// }
 
 fn is_left(direction: Direction) -> bool {
     match direction {
@@ -498,186 +627,48 @@ fn generate_direction(ref settings: Settings) -> Direction {
     }
 }
 
-fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
-    let holes = settings.size / 2;
-
-    let mut i = 0;
-    let mut cavern: Felt252Dict<Nullable<u256>> = Default::default();
-    loop {
-        if i == holes {
-            break;
-        }
-
-        let x = random_shift_counter_plus(ref settings, 0, 100);
-        let y = random_shift_counter_plus(ref settings, 0, 100);
-
-        let mut last_direction: Direction = Direction::LEFT;
-        let mut next_direction: Direction = Direction::LEFT;
-        loop {
-            cavern.set_bit(y * settings.size + x);
-
-            if is_left(last_direction) {
-                let next_direction = generate_direction(ref settings);
-                last_direction = next_direction;
-            } else {
-                let mut direction_seed: u256 = random_shift_counter_plus(
-                   ref settings, 0, 100
-                );
-
-                if direction_seed <= 25 {
-                    next_direction = clockwise_rotation(last_direction);
-                } else if direction_seed <= 50 {
-                    next_direction = counterclockwise_rotation(last_direction);
-                } else {
-                    next_direction = last_direction;
-                }
-            }
-
-            if !(x > 0 && y > 0 && x < settings.size && y < settings.size) {
-                break;
-            }
-            let (x, y) = get_direction(x, y, next_direction);
-        };
-
-        i += 1;
-    };
-
-    cavern
+fn random_with_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {
+    let result = random(settings.seed + settings.counter, min, max);
+    settings.counter += 1;
+    result
 }
 
-fn connect_halls_vertical(
-    ref hallways: Felt252Dict<Nullable<u256>>,
-    x: u256,
-    current_y: u256,
-    previous_y: u256,
-    size: u256
-) {
-    let mut min: u256 = if current_y > previous_y {
-        previous_y
-    } else {
-        current_y
-    };
-    let mut max: u256 = if current_y > previous_y {
-        current_y
-    } else {
-        previous_y
-    };
-    let mut y = min;
-    loop {
-        if y == max {
-            break;
-        }
-        hallways.set_bit(y * size + x);
-        y += 1;
-    };
+fn random_shift_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {
+    let result = random(settings.seed.left_shift(settings.counter), min, max);
+    settings.counter += 1;
+    result
 }
 
-fn connect_halls_horizontal(
-    ref hallways: Felt252Dict<Nullable<u256>>,
-    current_x: u256,
-    previous_x: u256,
-    y: u256,
-    size: u256
-) {
-    let mut min: u256 = if current_x > previous_x {
-        previous_x
-    } else {
-        current_x
-    };
-    let mut max: u256 = if current_x > previous_x {
-        current_x
-    } else {
-        previous_x
-    };
-    let mut x = min;
-    loop {
-        if x == max {
-            break;
-        }
-        hallways.set_bit(y * size + x);
-        x += 1;
-    }
+fn get_length(size: u256) -> u256 {
+    size * size / 256 + 1
 }
 
-fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict<Nullable<u256>> {
-    let mut hallways: Felt252Dict<Nullable<u256>> = Default::default();
-
-    let rooms_span = rooms.span();
-
-    if !rooms_span.is_empty() {
-        let mut previous_x: u256 = *rooms_span.at(0).x + (*rooms_span.at(0).width / 2);
-        let mut previous_y: u256 = *rooms_span.at(0).y + (*rooms_span.at(0).height / 2);
-
-        let mut i = 1;
-        loop {
-            if i == rooms_span.len() {
-                break;
-            }
-
-            let mut current_x = *rooms_span.at(i).x + (*rooms_span.at(i).width / 2);
-            let mut current_y = *rooms_span.at(i).y + (*rooms_span.at(i).height / 2);
-
-            if current_x == previous_x {
-                connect_halls_vertical(
-                    ref hallways, current_x, previous_x, current_y, settings.size
-                );
-            } else if current_y == previous_y {
-                connect_halls_horizontal(
-                    ref hallways, current_x, current_y, previous_y, settings.size
-                );
-            } else {
-                if random_with_counter_plus(ref settings, 1, 2) == 2 {
-                    connect_halls_horizontal(
-                        ref hallways, current_x, previous_x, current_y, settings.size
-                    );
-                    connect_halls_vertical(
-                        ref hallways, current_x, current_y, previous_y, settings.size
-                    );
-                } else {
-                    connect_halls_vertical(
-                        ref hallways, current_x, previous_x, current_y, settings.size
-                    );
-                    connect_halls_horizontal(
-                        ref hallways, current_x, current_y, previous_y, settings.size
-                    );
-                }
-            }
-
-            previous_x = current_x;
-            previous_y = current_y;
-
-            i += 1;
-        };
-    }
-
-    hallways
+fn build_settings(seed: u256, size: u256) -> Settings {
+    Settings { size: size, seed: seed, length: get_length(size), counter: 0 }
 }
 
-fn generate_points(
-    ref settings: Settings, ref map: Felt252Dict<Nullable<u256>>, probability: u256
-) -> Felt252Dict<Nullable<u256>> {
-    let mut points: Felt252Dict<Nullable<u256>> = Default::default();
+fn square_root(origin: u256) -> u256 {
+    let mut x = origin;
+    let mut y = (x + 1) / 2;
 
-    let mut prob: u256 = random_with_counter_plus(ref settings, 0, probability);
-    if (prob == 0) {
-        prob = 1;
-    }
-
-    let mut counter: u256 = 0;
-    let limit: u256 = settings.size * settings.size;
     loop {
-        if counter == limit {
+        if y >= x {
             break;
         }
-
-        if map.get_bit(counter) == 1 && random_with_counter_plus(ref settings, 0, 100) <= prob {
-            points.set_bit(counter);
-        }
-
-        counter += 1;
+        x = y;
+        y = (origin / y + y) / 2;
     };
 
-    points
+    return x;
+}
+
+// ------------------------------------------- test -------------------------------------------
+
+#[test]
+#[available_gas(30000000)]
+fn test_sqr() {
+    assert(square_root(17) == 4, 'compute square root of 17');
+    assert(square_root(24) == 4, 'compute square root of 24');
 }
 
 #[test]

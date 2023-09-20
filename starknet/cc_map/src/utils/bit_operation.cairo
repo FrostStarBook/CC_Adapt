@@ -4,33 +4,31 @@ use debug::PrintTrait;
 
 #[generate_trait]
 impl BitOperation of BitOperationTrait {
-    fn left_shift(self: u256, count: u256) -> u256 {
+    fn left_shift(self: u256, mut count: u256) -> u256 {
         let mut result: u256 = 1;
-        let mut loop_count = count;
         loop {
-            if loop_count == 0 {
+            if count == 0 {
                 break;
             }
             result *= 2;
-            loop_count -= 1;
+            count -= 1;
         };
         result *= self;
-        assert(result > self, 'over shift');
+        assert(result >= self, 'over shift in left shift');
         result
     }
 
-    fn right_shift(self: u256, count: u256) -> u256 {
+    fn right_shift(self: u256, mut count: u256) -> u256 {
         let mut result: u256 = 1;
-        let mut loop_count = count;
         loop {
-            if loop_count == 0 {
+            if count == 0 {
                 break;
             }
             result *= 2;
-            loop_count -= 1;
+            count -= 1;
         };
         result = self / result;
-        assert(result < self, 'over shift');
+        assert(result <= self, 'over shift in right shift');
         result
     }
 }
@@ -38,7 +36,6 @@ impl BitOperation of BitOperationTrait {
 #[test]
 #[available_gas(30000000)]
 fn test() {
-
     let a: u256 = 1;
     let b: u256 = 32;
     let mut result: u256 = a.left_shift(b);
@@ -48,5 +45,4 @@ fn test() {
     let d: u256 = 3;
     result = c.right_shift(d);
     assert(result == 16, 'right shift over');
-
 }

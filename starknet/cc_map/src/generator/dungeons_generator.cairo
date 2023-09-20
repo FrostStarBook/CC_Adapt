@@ -63,6 +63,7 @@ enum Direction {
 #[generate_trait]
 impl MapImpl of MapTrait {
     fn select(ref self: Felt252Dict<Nullable<u256>>, key: u256) -> u256 {
+        // implement the zero_default may be good too
         match match_nullable(self.get(key.try_into().expect('invalid key'))) {
             FromNullableResult::Null(()) => {
                 self.update(key, 0);
@@ -165,11 +166,12 @@ fn test_set_bit() {
     assert(map.count_bit(1) == 1, 'subtract bit');
 }
 
-// ------------------------------------------- DungeonGenerator -------------------------------------------
+// ------------------------------------------- Generator -------------------------------------------
 
 fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
     let mut settings: Settings = build_settings(seed, size);
     let mut structure: u256 = 0;
+
     if random_shift_counter_plus(ref settings, 0, 100) > 30 {
         let (mut rooms, mut floor) = generate_rooms(ref settings);
         let mut hallways: Felt252Dict = generate_hallways(ref settings, @rooms);
@@ -183,6 +185,7 @@ fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
 }
 
 fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<u256>>) {
+    'generate_rooms'.print();
     let mut room_settings: RoomSettings = RoomSettings {
         min_rooms: settings.size / 3,
         max_rooms: settings.size,
@@ -200,19 +203,22 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<
     loop {
         let current: Room = generate_new_room(ref settings, @room_settings);
 
-        if is_valid_room(@rooms, num_rooms, @current) {
+        if is_valid_room(@rooms, @current) {
             append_room_and_floor(ref rooms, ref floor, current, settings.size);
             num_rooms -= 1;
         }
-        if safety_check == 0 {
+
+        if safety_check == 0 || num_rooms == 0 {
             break;
         }
         safety_check -= 1;
     };
+
     (rooms, floor)
 }
 
 fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
+    'generate_cavern'.print();
     let holes = settings.size / 2;
 
     let mut i = 0;
@@ -231,6 +237,7 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
             cavern.set_bit(y * settings.size + x);
 
             if is_left(last_direction) {
+                // actually process the first round here, no matter with direction value of last
                 let next_direction = generate_direction(ref settings);
                 last_direction = next_direction;
             } else {
@@ -258,6 +265,7 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
 }
 
 fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict<Nullable<u256>> {
+    'generate_hallways'.print();
     let mut hallways: Felt252Dict<Nullable<u256>> = Default::default();
 
     let rooms_span = rooms.span();
@@ -314,8 +322,10 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict
 fn generate_points(
     ref settings: Settings, ref map: Felt252Dict<Nullable<u256>>, probability: u256
 ) -> Felt252Dict<Nullable<u256>> {
+    'generate_points'.print();
     let mut points: Felt252Dict<Nullable<u256>> = Default::default();
 
+    // maintain consistency with the source code
     let mut prob: u256 = random_with_counter_plus(ref settings, 0, probability);
     if (prob == 0) {
         prob = 1;
@@ -359,7 +369,6 @@ fn parse_entities(
         if y == size {
             break;
         }
-
         let mut x: u256 = 0;
         loop {
             if x == size {
@@ -399,6 +408,7 @@ fn get_doors(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
 fn generate_entities(
     seed: u256, size: u256
 ) -> (Felt252Dict<Nullable<u256>>, Felt252Dict<Nullable<u256>>) {
+    'generate_entities'.print();
     let mut settings: Settings = build_settings(seed, size);
 
     if random_with_counter_plus(ref settings, 0, 100) > 30 {
@@ -452,17 +462,17 @@ fn generate_new_room(ref settings: Settings, room_settings: @RoomSettings) -> Ro
     Room { x: x, y: y, width: width, height: height }
 }
 
-fn is_valid_room(rooms: @Array<Room>, num_rooms: u256, current: @Room) -> bool {
+fn is_valid_room(rooms: @Array<Room>, current: @Room) -> bool {
     let rooms_span = rooms.span();
-    let length: u256 = rooms_span.len().into();
+    let mut length: u256 = rooms_span.len().into();
+
     if length > 0 {
-        let mut i = 0;
         loop {
-            if i == length - num_rooms {
+            if length == 0 {
                 break true;
             }
 
-            let room: Room = *rooms_span.at(i.try_into().expect('out of bounds'));
+            let room: Room = *rooms_span.at((length - 1).try_into().expect('invalid index'));
             if (room.x - 1 < *current.x + *current.width)
                 && (room.x + room.width + 1 > *current.x)
                 && (room.y - 1 < *current.x + *current.height)
@@ -470,7 +480,7 @@ fn is_valid_room(rooms: @Array<Room>, num_rooms: u256, current: @Room) -> bool {
                 break false;
             }
 
-            i += 1;
+            length -= 1;
         }
     } else {
         true
@@ -607,9 +617,10 @@ fn counterclockwise_rotation(direction: Direction) -> Direction {
 fn generate_direction(ref settings: Settings) -> Direction {
     let direction: u256 = random_shift_counter_plus(ref settings, 1, 4);
 
-    if direction == 0 {
-        Direction::LEFT
-    } else if direction == 1 {
+    // if direction == 0 {
+    //     Direction::LEFT
+    // } else 
+    if direction == 1 {
         Direction::UP
     } else if direction == 2 {
         Direction::RIGHT
@@ -653,7 +664,7 @@ fn square_root(origin: u256) -> u256 {
     return x;
 }
 
-// ------------------------------------------- test -------------------------------------------
+// ------------------------------------------- Test -------------------------------------------
 
 #[test]
 #[available_gas(30000000)]
@@ -663,5 +674,22 @@ fn test_sqr() {
 }
 
 #[test]
-#[available_gas(300000000)]
-fn test_generate_room() {}
+#[available_gas(300000000000000)]
+fn test_generate_room() {
+    let seed: u256 = 13775942172093573085967568754928963453267290232609549077015257496415683079456;
+    let size: u256 = 16;
+
+    let (mut map, mut structure) = get_layout(seed, size);
+
+    let mut length = size * size / 256 + 1;
+    loop {
+        if length == 0 {
+            break;
+        }
+
+        let value: u256 = map.select(length - 1);
+        value.print();
+
+        length -= 1;
+    }
+}

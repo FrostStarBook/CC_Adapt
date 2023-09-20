@@ -1,6 +1,3 @@
-use core::option::OptionTrait;
-use traits::{Into, TryInto};
-use array::ArrayTrait;
 
 use debug::PrintTrait;
 
@@ -9,66 +6,40 @@ use debug::PrintTrait;
 fn random(seed: u256, min: u256, max: u256) -> u256 {
     let output: u256 = keccak::keccak_u256s_be_inputs(array![seed].span());
 
-    let result: u256 = u256 {
+    let mut result: u256 = u256 {
         low: integer::u128_byte_reverse(output.low), high: integer::u128_byte_reverse(output.high)
     };
+    // 'result'.print();
+    // result.print();
 
-    let mut mode: u256 = max - min;
-    'mode'.print();
-    mode.print();
+    // if result > 115792089237316195423570985008687907853269984665640564039457584007913129639935{
+    //     result -= 100000000000000000000000000000000000000000000000000000000000000000000000000000;
+    // }
 
-    // let (_, remainder) = integer::u256_safe_div_rem(result, integer::u256_as_non_zero(mode));
-    let remainder = calculate_remainder(result, mode);
-    'remainder'.print();
-    remainder.print();
+    let mut temp = result % (max - min);
+    // 'temp'.print();
+    // temp.print();
 
-    remainder + min
-}
-
-fn calculate_remainder(dividend: u256, divisor: u256) -> u256 {
-    assert(divisor != 0, 'Divisor cannot be zero.');
-
-    let quotient = dividend / divisor;
-    let product = quotient * divisor;
-    let remainder = dividend - product;
-
-    remainder
-}
-
-fn random_origin(seed: u256) -> u256 {
-    keccak::keccak_u256s_be_inputs(array![seed].span())
-}
-
-
-// ------------------------------------ test only --------------------------------------
-fn u128_split(input: u128) -> (u64, u64) {
-    let (high, low) = integer::u128_safe_divmod(
-        input, 0x10000000000000000_u128.try_into().unwrap()
-    );
-
-    (u128_to_u64(high), u128_to_u64(low))
-}
-
-fn u128_to_u64(input: u128) -> u64 {
-    input.try_into().unwrap()
-}
-
-fn keccak_add_u256_be(ref keccak_input: Array::<u64>, v: u256) {
-    let (high, low) = u128_split(integer::u128_byte_reverse(v.high));
-    keccak_input.append(low);
-    keccak_input.append(high);
-    let (high, low) = u128_split(integer::u128_byte_reverse(v.low));
-    keccak_input.append(low);
-    keccak_input.append(high);
+    temp + min
 }
 
 
 #[test]
 #[available_gas(30000000)]
-fn test2() {
-    let origin: u256 = 98425958205593441920124379736634429889707266979353065459961632276135369763936;
-    'mod'.print();
-    (origin % 14).print();
+fn test_u256() {
+    let seed: u256 = 47644144660693649943980215435560498623172148321825190670936003990961659435532;
+    let output: u256 = keccak::keccak_u256s_be_inputs(array![seed].span());
+    let mut result: u256 = u256 {
+        low: integer::u128_byte_reverse(output.low), high: integer::u128_byte_reverse(output.high)
+    };
+    // result.print();
+    // here we can see that result [raw: 0xd99b1e3fa288fb5c1160159aa781d7c3] and [raw: 0xdd87c6975633f40323010131a0efec60]
+    // but validation goes wrong
+    assert(
+        result == 0xd99b1e3fa288fb5c1160159aa781d7c3dd87c6975633f40323010131a0efec60
+            || result == 98425958205593441920124379736634429889707266979353065459961632276135369763936,
+        'result error'
+    );
 }
 
 #[test]
@@ -76,43 +47,24 @@ fn test2() {
 #[available_gas(30000000)]
 fn test() {
     let seed: u256 = 47644144660693649943980215435560498623172148321825190670936003990961659435532;
-    // 'seed'.print();
-    // seed.print();
     let min: u256 = 1;
     let max: u256 = 15;
+
+    let output: u256 = keccak::keccak_u256s_be_inputs(array![seed].span());
+    let result: u256 = u256 {
+        low: integer::u128_byte_reverse(output.low), high: integer::u128_byte_reverse(output.high)
+    };
+    assert(
+        result == 0xd99b1e3fa288fb5c1160159aa781d7c3dd87c6975633f40323010131a0efec60, 'result error'
+    );
+
+    'result'.print();
+    result.print();
 
     let result: u256 = random(seed, min, max);
     'random'.print();
     result.print();
     assert(result == 9, 'random');
-
-    {}
-
-    // let high: u128 = integer::u128_byte_reverse(result.high);
-    // 'high'.print();
-    // high.print();
-    // let low: u128 = integer::u128_byte_reverse(result.low);
-    // 'low'.print();
-    // low.print();
-
-    // let final: u256 = u256 { low: low, high: high };
-    // 'final'.print();
-    // final.print();
-
-    {}
-// let mut keccak_input: Array::<u64> = Default::default();
-// keccak_add_u256_be(ref keccak_input, seed);
-
-// let result = keccak_input.span();
-// let mut count = 0;
-// loop {
-//     if count == result.len() {
-//         break;
-//     }
-//     let iii = *result[count];
-//     iii.print();
-//     count += 1;
-// };
 }
 // ------------------------------------- not used --------------------------------------
 //

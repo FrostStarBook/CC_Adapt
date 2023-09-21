@@ -217,6 +217,7 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<
     (rooms, floor)
 }
 
+
 fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
     'generate_cavern'.print();
     let holes = settings.size / 2;
@@ -228,8 +229,8 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
             break;
         }
 
-        let x = random_shift_counter_plus(ref settings, 0, 100);
-        let y = random_shift_counter_plus(ref settings, 0, 100);
+        let mut x = random_shift_counter_plus(ref settings, 0, settings.size);
+        let mut y = random_shift_counter_plus(ref settings, 0, settings.size);
 
         let mut last_direction: Direction = Direction::LEFT;
         let mut next_direction: Direction = Direction::LEFT;
@@ -237,11 +238,10 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
             cavern.set_bit(y * settings.size + x);
 
             if is_left(last_direction) {
-                // actually process the first round here, no matter with direction value of last
                 let next_direction = generate_direction(ref settings);
                 last_direction = next_direction;
             } else {
-                let mut direction_seed: u256 = random_shift_counter_plus(ref settings, 0, 100);
+                let direction_seed = random_shift_counter_plus(ref settings, 0, 100);
 
                 if direction_seed <= 25 {
                     next_direction = clockwise_rotation(last_direction);
@@ -255,7 +255,9 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
             if !(x > 0 && y > 0 && x < settings.size && y < settings.size) {
                 break;
             }
-            let (x, y) = get_direction(x, y, next_direction);
+            let (next_x, next_y) = get_direction(x, y, next_direction);
+            x = next_x;
+            y = next_y;
         };
 
         i += 1;
@@ -564,8 +566,20 @@ fn connect_halls_horizontal(
 
 fn get_direction(base_x: u256, base_y: u256, direction: Direction) -> (u256, u256) {
     match direction {
-        Direction::LEFT => (base_x - 1, base_y),
-        Direction::UP => (base_x, base_y - 1),
+        Direction::LEFT => {
+            if base_x > 0 {
+                (base_x - 1, base_y)
+            } else {
+                (base_x, base_y)
+            }
+        },
+        Direction::UP => {
+            if base_y > 0 {
+                (base_x, base_y - 1)
+            } else {
+                (base_x, base_y)
+            }
+        },
         Direction::RIGHT => (base_x + 1, base_y),
         Direction::DOWN => (base_x, base_y + 1),
     }
@@ -674,23 +688,34 @@ fn test_sqr() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 #[available_gas(300000000000000)]
 fn test_generate_room() {
-    let seed: u256 = 13775942172093573085967568754928963453267290232609549077015257496415683079456;
-    let size: u256 = 16;
+    {}
+    // tokenId 5678
+    let seed: u256 = 54726856408304506636278424762823059598933394071647911965527120692794348915138;
+    let size: u256 = 20;
 
     let (mut map, mut structure) = get_layout(seed, size);
 
-    let mut length = size * size / 256 + 1;
+    'layout'.print();
+
+    'structure'.print();
+    structure.print();
+    let length = size * size / 256;
+    let mut count = 0;
+    'map'.print();
     loop {
-        if length == 0 {
+        if length + 1 == count {
             break;
         }
 
-        let value: u256 = map.select(length - 1);
+        let value: u256 = map.select(count);
+        'index'.print();
+        count.print();
+        'value'.print();
         value.print();
 
-        length -= 1;
+        count += 1;
     }
 }

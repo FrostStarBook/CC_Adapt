@@ -81,14 +81,14 @@ impl MapImpl of MapTrait {
         let quotient = position / 256;
         let remainder = position % 256;
 
-        self.update(quotient, (self.select(quotient)) | (1.left_shift(remainder)));
+        self.update(quotient, (self.select(quotient)) | (1.left_shift(255 - remainder)));
     }
 
     fn get_bit(ref self: Felt252Dict<Nullable<u256>>, position: u256) -> u256 {
         let quotient = position / 256;
         let remainder = position % 256;
-        let value: u256 = self.select(quotient);
-        value.right_shift(remainder) & 1
+
+        self.select(quotient).right_shift(255 - remainder) & 1
     }
 
     fn add_bit(
@@ -141,7 +141,19 @@ impl MapImpl of MapTrait {
     }
 }
 
+
 #[test]
+#[ignore]
+#[available_gas(30000000)]
+fn testset() {
+    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
+    map.set_bit(341);
+    'map(1)'.print();
+    map.select(1).print();
+}
+
+#[test]
+#[ignore]
 #[available_gas(30000000)]
 fn test_set_bit() {
     let mut map: Felt252Dict<Nullable<u256>> = Default::default();
@@ -229,13 +241,31 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
             break;
         }
 
+        // 'cavern'.print();
+        // cavern.select(0).print();
+        // cavern.select(1).print();
+
         let mut x = random_shift_counter_plus(ref settings, 0, settings.size);
         let mut y = random_shift_counter_plus(ref settings, 0, settings.size);
 
+        // 'size'.print();
+        // settings.size.print();
+        // 'x'.print();
+        // x.print();
+        // 'y'.print();
+        // y.print();
+
         let mut last_direction: Direction = Direction::LEFT;
         let mut next_direction: Direction = Direction::LEFT;
+
         loop {
             cavern.set_bit(y * settings.size + x);
+            'x'.print();
+            x.print();
+            'y'.print();
+            y.print();
+            'set bit'.print();
+            (y * settings.size + x).print();
 
             if is_left(last_direction) {
                 let next_direction = generate_direction(ref settings);
@@ -252,12 +282,16 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
                 }
             }
 
-            if !(x > 0 && y > 0 && x < settings.size && y < settings.size) {
-                break;
-            }
             let (next_x, next_y) = get_direction(x, y, next_direction);
+
             x = next_x;
             y = next_y;
+
+            if x == 0 || y == 0 || x >= settings.size || y >= settings.size {
+                break;
+            }
+
+            let avoid_compile_check = 0;
         };
 
         i += 1;
@@ -573,15 +607,15 @@ fn get_direction(base_x: u256, base_y: u256, direction: Direction) -> (u256, u25
                 (base_x, base_y)
             }
         },
-        Direction::UP => {
+        Direction::UP => (base_x, base_y + 1),
+        Direction::RIGHT => (base_x + 1, base_y),
+        Direction::DOWN => {
             if base_y > 0 {
                 (base_x, base_y - 1)
             } else {
                 (base_x, base_y)
             }
         },
-        Direction::RIGHT => (base_x + 1, base_y),
-        Direction::DOWN => (base_x, base_y + 1),
     }
 }
 
@@ -698,8 +732,7 @@ fn test_generate_room() {
 
     let (mut map, mut structure) = get_layout(seed, size);
 
-    'layout'.print();
-
+    'layout display!!!'.print();
     'structure'.print();
     structure.print();
     let length = size * size / 256;

@@ -187,7 +187,7 @@ fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
 
     if random_shift_counter_plus(ref settings, 0, 100) > 30 {
         let (mut rooms, mut floor) = generate_rooms(ref settings);
-        let mut hallways: Felt252Dict = generate_hallways(ref settings, @rooms);
+        let mut hallways = generate_hallways(ref settings, @rooms);
         floor.add_bit(ref hallways, settings.length);
         (floor, structure)
     } else {
@@ -212,16 +212,22 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<
     let mut num_rooms = random_with_counter_plus(
         ref settings, room_settings.min_rooms, room_settings.max_rooms
     );
-    let mut safety_check: u256 = 256;
+
+    let mut safety_check: u128 = 256;
     loop {
+        if num_rooms == 0 {
+            break;
+        }
+
         let current: Room = generate_new_room(ref settings, @room_settings);
 
         if is_valid_room(@rooms, @current) {
-            append_room_and_floor(ref rooms, ref floor, current, settings.size);
+            rooms.append(current);
+            mark_the_floor(ref floor, current, settings.size);
             num_rooms -= 1;
         }
 
-        if safety_check == 0 || num_rooms == 0 {
+        if safety_check == 0 {
             break;
         }
         safety_check -= 1;
@@ -322,14 +328,14 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict
                         ref hallways, current_x, previous_x, current_y, settings.size
                     );
                     connect_halls_vertical(
-                        ref hallways, current_x, current_y, previous_y, settings.size
+                        ref hallways, previous_y, current_y, current_x, settings.size
                     );
                 } else {
                     connect_halls_vertical(
-                        ref hallways, current_x, previous_x, current_y, settings.size
+                        ref hallways, current_y, previous_y, previous_x, settings.size
                     );
                     connect_halls_horizontal(
-                        ref hallways, current_x, current_y, previous_y, settings.size
+                        ref hallways, previous_x, current_x, current_y, settings.size
                     );
                 }
             }
@@ -512,10 +518,7 @@ fn is_valid_room(rooms: @Array<Room>, current: @Room) -> bool {
     }
 }
 
-fn append_room_and_floor(
-    ref rooms: Array<Room>, ref floor: Felt252Dict<Nullable<u256>>, current: Room, size: u256
-) {
-    rooms.append(current);
+fn mark_the_floor(ref floor: Felt252Dict<Nullable<u256>>, current: Room, size: u256) {
     let mut y = current.y;
     loop {
         if y == current.y + current.height {
@@ -526,7 +529,9 @@ fn append_room_and_floor(
             if x == current.x + current.width {
                 break;
             }
+
             floor.set_bit(y * size + x);
+
             x += 1;
         };
         y += 1;
@@ -535,9 +540,9 @@ fn append_room_and_floor(
 
 fn connect_halls_vertical(
     ref hallways: Felt252Dict<Nullable<u256>>,
-    x: u256,
     current_y: u256,
     previous_y: u256,
+    x: u256,
     size: u256
 ) {
     let mut min: u256 = if current_y > previous_y {
@@ -685,27 +690,50 @@ fn test_sqr() {
 #[available_gas(300000000000000)]
 fn test_generate_room() {
     {}
-    // tokenId 5678
+    // tokenId 5678 cavern type
     let seed: u256 = 54726856408304506636278424762823059598933394071647911965527120692794348915138;
     let size: u256 = 20;
 
     let (mut map, mut structure) = get_layout(seed, size);
+    // print_map(ref map, structure, size);
+    assert(
+        structure == 1
+            && map.select(0) == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c1462
+            && map.select(1) == 0xc1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
+        'cavern error'
+    );
 
-    'layout display!!!'.print();
+    {}
+    // tokenId 6666 room type
+    let seed: u256 = 6335337818598560499429733180295617724328926230334923097623654911070136911834;
+    let size: u256 = 17;
+
+    let (mut map, mut structure) = get_layout(seed, size);
+    print_map(ref map, structure, size);
+    assert(
+        structure == 0
+            && map.select(0) == 0x18000c0000003fbc1ffe03ef01f000ffc00000
+            && map.select(1) == 0x0,
+        'room error'
+    )
+}
+
+fn print_map(ref map: Felt252Dict<Nullable<u256>>, structure: u256, size: u256) {
+    '--------layout display--------'.print();
     'structure'.print();
+    let structure: u128 = structure.try_into().unwrap();
     structure.print();
     let length = size * size / 256;
-    let mut count = 0;
-    'map'.print();
+    let mut count: u128 = 0;
     loop {
-        if length + 1 == count {
+        if length + 1 == count.into() {
             break;
         }
 
-        let value: u256 = map.select(count);
-        'index'.print();
+        let value: u256 = map.select(count.into());
+        'map index'.print();
         count.print();
-        'value'.print();
+        'map value'.print();
         value.print();
 
         count += 1;

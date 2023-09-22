@@ -2,7 +2,6 @@ use debug::PrintTrait;
 
 // ------------------------------------ random --------------------------------------
 fn random(seed: u256, min: u256, max: u256) -> u256 {
-    // seed.print();
     let output: u256 = keccak::keccak_u256s_be_inputs(array![seed].span());
 
     (u256 {

@@ -50,13 +50,14 @@ struct Room {
     height: u256
 }
 
-#[derive(Copy, Drop)]
-enum Direction {
-    LEFT,
-    UP,
-    RIGHT,
-    DOWN,
-}
+// cause some annoying errors
+// #[derive(Copy, Drop)]
+// enum Direction {
+//     LEFT,
+//     UP,
+//     RIGHT,
+//     DOWN,
+// }
 
 // ------------------------------------------- MapTrait -------------------------------------------
 
@@ -230,69 +231,57 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<
 }
 
 
+fn explore_in_cavern(
+    ref settings: Settings,
+    ref cavern: Felt252Dict<Nullable<u256>>,
+    ref last_direction: u8,
+    ref next_direction: u8,
+    mut x: u256,
+    mut y: u256
+) {
+    cavern.set_bit(y * settings.size + x);
+
+    if is_left(last_direction) {
+        let new_direction = generate_direction(ref settings);
+        last_direction = new_direction;
+        next_direction = new_direction;
+    } else {
+        let direction_seed = random_shift_counter_plus(ref settings, 0, 100);
+        if direction_seed <= 25 {
+            next_direction = clockwise_rotation(last_direction);
+        } else if direction_seed <= 50 {
+            next_direction = counterclockwise_rotation(last_direction);
+        } else {
+            next_direction = last_direction;
+        }
+    }
+
+    let (next_x, next_y) = get_direction(x, y, next_direction);
+    x = next_x;
+    y = next_y;
+
+    if (x > 0 && x < settings.size && y > 0 && y < settings.size) {
+        explore_in_cavern(ref settings, ref cavern, ref last_direction, ref next_direction, x, y);
+    }
+}
+
 fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
     'generate_cavern'.print();
     let holes = settings.size / 2;
+    let mut cavern: Felt252Dict<Nullable<u256>> = Default::default();
+    let mut last_direction: u8 = 0;
+    let mut next_direction: u8 = 0;
 
     let mut i = 0;
-    let mut cavern: Felt252Dict<Nullable<u256>> = Default::default();
     loop {
         if i == holes {
             break;
         }
 
-        // 'cavern'.print();
-        // cavern.select(0).print();
-        // cavern.select(1).print();
-
         let mut x = random_shift_counter_plus(ref settings, 0, settings.size);
         let mut y = random_shift_counter_plus(ref settings, 0, settings.size);
 
-        // 'size'.print();
-        // settings.size.print();
-        // 'x'.print();
-        // x.print();
-        // 'y'.print();
-        // y.print();
-
-        let mut last_direction: Direction = Direction::LEFT;
-        let mut next_direction: Direction = Direction::LEFT;
-
-        loop {
-            cavern.set_bit(y * settings.size + x);
-            'x'.print();
-            x.print();
-            'y'.print();
-            y.print();
-            'set bit'.print();
-            (y * settings.size + x).print();
-
-            if is_left(last_direction) {
-                let next_direction = generate_direction(ref settings);
-                last_direction = next_direction;
-            } else {
-                let direction_seed = random_shift_counter_plus(ref settings, 0, 100);
-
-                if direction_seed <= 25 {
-                    next_direction = clockwise_rotation(last_direction);
-                } else if direction_seed <= 50 {
-                    next_direction = counterclockwise_rotation(last_direction);
-                } else {
-                    next_direction = last_direction;
-                }
-            }
-
-            let (next_x, next_y) = get_direction(x, y, next_direction);
-
-            x = next_x;
-            y = next_y;
-
-            if x == 0 || y == 0 || x >= settings.size || y >= settings.size {
-                break;
-            }
-
-            let avoid_compile_check = 0;
-        };
+        explore_in_cavern(ref settings, ref cavern, ref last_direction, ref next_direction, x, y);
 
         i += 1;
     };
@@ -598,83 +587,53 @@ fn connect_halls_horizontal(
     }
 }
 
-fn get_direction(base_x: u256, base_y: u256, direction: Direction) -> (u256, u256) {
-    match direction {
-        Direction::LEFT => {
-            if base_x > 0 {
-                (base_x - 1, base_y)
-            } else {
-                (base_x, base_y)
-            }
-        },
-        Direction::UP => (base_x, base_y + 1),
-        Direction::RIGHT => (base_x + 1, base_y),
-        Direction::DOWN => {
-            if base_y > 0 {
-                (base_x, base_y - 1)
-            } else {
-                (base_x, base_y)
-            }
-        },
-    }
-}
-
-fn is_left(direction: Direction) -> bool {
-    match direction {
-        Direction::LEFT => true,
-        Direction::UP => false,
-        Direction::RIGHT => false,
-        Direction::DOWN => false,
-    }
-}
-
-fn clockwise_rotation(direction: Direction) -> Direction {
-    match direction {
-        Direction::LEFT => {
-            Direction::UP
-        },
-        Direction::UP => {
-            Direction::RIGHT
-        },
-        Direction::RIGHT => {
-            Direction::DOWN
-        },
-        Direction::DOWN => {
-            Direction::LEFT
+fn get_direction(base_x: u256, base_y: u256, direction: u8) -> (u256, u256) {
+    if direction == 0 {
+        if base_x > 0 {
+            (base_x - 1, base_y)
+        } else {
+            (base_x, base_y)
         }
-    }
-}
-
-fn counterclockwise_rotation(direction: Direction) -> Direction {
-    match direction {
-        Direction::LEFT => {
-            Direction::DOWN
-        },
-        Direction::UP => {
-            Direction::LEFT
-        },
-        Direction::RIGHT => {
-            Direction::UP
-        },
-        Direction::DOWN => {
-            Direction::RIGHT
-        }
-    }
-}
-
-fn generate_direction(ref settings: Settings) -> Direction {
-    let direction: u256 = random_shift_counter_plus(ref settings, 1, 4);
-
-    // if direction == 0 {
-    //     Direction::LEFT
-    // } else 
-    if direction == 1 {
-        Direction::UP
+    } else if direction == 1 {
+        (base_x, base_y + 1)
     } else if direction == 2 {
-        Direction::RIGHT
-    } else {
-        Direction::DOWN
+        (base_x + 1, base_y)
+    } else { // direction ==3
+        if base_y > 0 {
+            (base_x, base_y - 1)
+        } else {
+            (base_x, base_y)
+        }
     }
+}
+
+
+fn is_left(direction: u8) -> bool {
+    if direction == 0 {
+        true
+    } else {
+        false
+    }
+}
+
+fn clockwise_rotation(direction: u8) -> u8 {
+    if direction == 3 {
+        0
+    } else {
+        direction + 1
+    }
+}
+
+fn counterclockwise_rotation(direction: u8) -> u8 {
+    if direction == 0 {
+        3
+    } else {
+        direction - 1
+    }
+}
+
+fn generate_direction(ref settings: Settings) -> u8 {
+    random_shift_counter_plus(ref settings, 1, 4).try_into().expect('over u8 range')
 }
 
 fn random_with_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {

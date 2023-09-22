@@ -1,11 +1,9 @@
-use core::array::{Array, ArrayTrait, Span, SpanTrait};
-use box::BoxTrait;
 use debug::PrintTrait;
 use nullable::{NullableTrait, FromNullableResult, nullable_from_box, match_nullable};
-use starknet::ContractAddress;
-use openzeppelin::token::erc20::ERC20;
-use cc_map::utils::random::{random};
 use cc_map::utils::bit_operation::{BitOperationTrait};
+use cc_map::utils::random::{random};
+
+// ------------------------------------------- Structs -------------------------------------------
 
 #[derive(Copy, Drop)]
 struct Dungeon {
@@ -142,7 +140,6 @@ impl MapImpl of MapTrait {
     }
 }
 
-
 // ------------------------------------------- Generator -------------------------------------------
 
 fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
@@ -199,7 +196,6 @@ fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<
 
     (rooms, floor)
 }
-
 
 fn explore_in_cavern(
     ref settings: Settings,
@@ -575,7 +571,6 @@ fn get_direction(base_x: u256, base_y: u256, direction: u8) -> (u256, u256) {
         }
     }
 }
-
 
 fn is_left(direction: u8) -> bool {
     if direction == 0 {

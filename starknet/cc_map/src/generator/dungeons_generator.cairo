@@ -143,42 +143,6 @@ impl MapImpl of MapTrait {
 }
 
 
-#[test]
-#[ignore]
-#[available_gas(30000000)]
-fn testset() {
-    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
-    map.set_bit(341);
-    'map(1)'.print();
-    map.select(1).print();
-}
-
-#[test]
-#[ignore]
-#[available_gas(30000000)]
-fn test_set_bit() {
-    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
-    let key = 0;
-    // for test only, it won't be used this way
-    map.update(key, 2);
-    map.set_bit(20);
-    assert(map.select(key) == 1048578, 'set bit');
-    assert(map.get_bit(19) == 0, 'get bit of index 19');
-    assert(map.get_bit(20) == 1, 'get bit of index 20');
-    assert(map.count_bit(1) == 2, 'count bit');
-
-    let mut another_map: Felt252Dict<Nullable<u256>> = Default::default();
-    // for test only, it won't be used this way
-    another_map.update(key, 3);
-    another_map.set_bit(30);
-    assert(another_map.count_bit(1) == 3, 'count bit');
-
-    map.add_bit(ref another_map, 1);
-    assert(map.count_bit(1) == 4, 'add bit');
-    map.subtract_bit(ref another_map, 1);
-    assert(map.count_bit(1) == 1, 'subtract bit');
-}
-
 // ------------------------------------------- Generator -------------------------------------------
 
 fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
@@ -679,11 +643,49 @@ fn square_root(origin: u256) -> u256 {
 // ------------------------------------------- Test -------------------------------------------
 
 #[test]
+#[ignore]
+#[available_gas(30000000)]
+fn testset() {
+    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
+    map.set_bit(341);
+    'map(1)'.print();
+    map.select(1).print();
+}
+
+#[test]
+#[ignore]
+#[available_gas(30000000)]
+fn test_set_bit() {
+    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
+    let key = 0;
+    // for test only, it won't be used this way
+    map.update(key, 2);
+    map.set_bit(20);
+    assert(map.select(key) == 1048578, 'set bit');
+    assert(map.get_bit(19) == 0, 'get bit of index 19');
+    assert(map.get_bit(20) == 1, 'get bit of index 20');
+    assert(map.count_bit(1) == 2, 'count bit');
+
+    let mut another_map: Felt252Dict<Nullable<u256>> = Default::default();
+    // for test only, it won't be used this way
+    another_map.update(key, 3);
+    another_map.set_bit(30);
+    assert(another_map.count_bit(1) == 3, 'count bit');
+
+    map.add_bit(ref another_map, 1);
+    assert(map.count_bit(1) == 4, 'add bit');
+    map.subtract_bit(ref another_map, 1);
+    assert(map.count_bit(1) == 1, 'subtract bit');
+}
+
+
+#[test]
 #[available_gas(30000000)]
 fn test_sqr() {
     assert(square_root(17) == 4, 'compute square root of 17');
     assert(square_root(24) == 4, 'compute square root of 24');
 }
+
 
 #[test]
 // #[ignore]
@@ -702,6 +704,14 @@ fn test_generate_room() {
             && map.select(1) == 0xc1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
         'cavern error'
     );
+    // tokenId 5678 entities
+    let (x_array, y_array, t_array) = get_entities(seed, size);
+
+    // print_array(@x_array, @y_array, @t_array);
+
+    assert(*x_array.at(0) == 0x10, 'x error');
+    assert(*y_array.at(0) == 0x12, 'y error');
+    assert(*t_array.at(0) == 0x1, 't error');
 
     {}
     // tokenId 6666 room type
@@ -709,13 +719,13 @@ fn test_generate_room() {
     let size: u256 = 17;
 
     let (mut map, mut structure) = get_layout(seed, size);
-    print_map(ref map, structure, size);
+    // print_map(ref map, structure, size);
     assert(
         structure == 0
             && map.select(0) == 0x18000c0000003fbc1ffe03ef01f000ffc00000
             && map.select(1) == 0x0,
         'room error'
-    )
+    );
 }
 
 fn print_map(ref map: Felt252Dict<Nullable<u256>>, structure: u256, size: u256) {
@@ -738,4 +748,27 @@ fn print_map(ref map: Felt252Dict<Nullable<u256>>, structure: u256, size: u256) 
 
         count += 1;
     }
+}
+
+fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u256>) {
+    '--------entities display-------'.print();
+    let mut limit = x_array.len();
+    loop {
+        if limit == 0 {
+            break;
+        }
+
+        let x: u128 = (*x_array.at(limit - 1)).try_into().expect('out of range');
+        let y: u128 = (*y_array.at(limit - 1)).try_into().expect('out of range');
+        let t: u128 = (*t_array.at(limit - 1)).try_into().expect('out of range');
+        '-- group --'.print();
+        'x'.print();
+        x.print();
+        'y'.print();
+        y.print();
+        't'.print();
+        t.print();
+
+        limit -= 1;
+    };
 }

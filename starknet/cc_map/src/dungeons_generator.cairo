@@ -5,25 +5,6 @@ use cc_map::utils::random::{random};
 
 // ------------------------------------------- Structs -------------------------------------------
 
-#[derive(Copy, Drop)]
-struct Dungeon {
-    size: u8,
-    environment: u8,
-    structure: u8,
-    legendary: u8,
-    layout: Span<(u8, u8)>,
-    entities: EntityData,
-    affinity: felt252,
-    dungeon_name: Span<felt252>
-}
-
-#[derive(Copy, Drop)]
-struct EntityData {
-    x: Span<u8>,
-    y: Span<u8>,
-    entity_data: Span<u8>
-}
-
 #[derive(Copy, Drop, serded)]
 struct Settings {
     size: u256,
@@ -572,6 +553,7 @@ fn get_direction(base_x: u256, base_y: u256, direction: u8) -> (u256, u256) {
     }
 }
 
+#[inline(always)]
 fn is_left(direction: u8) -> bool {
     if direction == 0 {
         true
@@ -580,6 +562,7 @@ fn is_left(direction: u8) -> bool {
     }
 }
 
+#[inline(always)]
 fn clockwise_rotation(direction: u8) -> u8 {
     if direction == 3 {
         0
@@ -588,6 +571,7 @@ fn clockwise_rotation(direction: u8) -> u8 {
     }
 }
 
+#[inline(always)]
 fn counterclockwise_rotation(direction: u8) -> u8 {
     if direction == 0 {
         3
@@ -596,26 +580,31 @@ fn counterclockwise_rotation(direction: u8) -> u8 {
     }
 }
 
+#[inline(always)]
 fn generate_direction(ref settings: Settings) -> u8 {
     random_shift_counter_plus(ref settings, 1, 4).try_into().expect('over u8 range')
 }
 
+#[inline(always)]
 fn random_with_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {
     let result = random(settings.seed + settings.counter, min, max);
     settings.counter += 1;
     result
 }
 
+#[inline(always)]
 fn random_shift_counter_plus(ref settings: Settings, min: u256, max: u256) -> u256 {
     let result = random(settings.seed.left_shift(settings.counter), min, max);
     settings.counter += 1;
     result
 }
 
+#[inline(always)]
 fn get_length(size: u256) -> u256 {
     size * size / 256 + 1
 }
 
+#[inline(always)]
 fn build_settings(seed: u256, size: u256) -> Settings {
     Settings { size: size, seed: seed, length: get_length(size), counter: 0 }
 }

@@ -1,16 +1,9 @@
 use debug::PrintTrait;
-use starknet::ContractAddress;
 
+// just for test
 
 fn function() {
-    let mut i: u128 = 1;
-    let mut j: u128 = 2;
-    {
-        i = 3;
-        j = i;
-    }
-    i.print();
-    j.print();
+
 }
 
 #[test]

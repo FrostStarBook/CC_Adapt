@@ -320,30 +320,30 @@ fn generate_points(
     points
 }
 
-fn get_entities(seed: u256, size: u256) -> (Array<u256>, Array<u256>, Array<u256>) {
+fn get_entities(seed: u256, size: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
     let (mut points, mut doors) = generate_entities(seed, size);
     parse_entities(size, ref points, ref doors)
 }
 
 fn parse_entities(
     size: u256, ref points: Felt252Dict<Nullable<u256>>, ref doors: Felt252Dict<Nullable<u256>>
-) -> (Array<u256>, Array<u256>, Array<u256>) {
-    let mut x_arr: Array<u256> = ArrayTrait::new();
-    let mut y_arr: Array<u256> = ArrayTrait::new();
-    let mut entity_type: Array<u256> = ArrayTrait::new();
+) -> (Array<u8>, Array<u8>, Array<u8>) {
+    let mut x_arr: Array<u8> = ArrayTrait::new();
+    let mut y_arr: Array<u8> = ArrayTrait::new();
+    let mut entity_type: Array<u8> = ArrayTrait::new();
 
     // let mut entity_count: u256 = points.count_bit(get_length(size))
     // + doors.count_bit(get_length(size));
     let mut counter: u256 = 0;
 
-    let mut y: u256 = 0;
+    let mut y: u8 = 0;
     loop {
-        if y == size {
+        if y.into() == size {
             break;
         }
-        let mut x: u256 = 0;
+        let mut x: u8 = 0;
         loop {
-            if x == size {
+            if x.into() == size {
                 break;
             }
 

@@ -3,7 +3,8 @@ mod DungeonsSeeder {
     use array::ArrayTrait;
     use option::OptionTrait;
     use traits::{Into, TryInto};
-    use cc_map::utils::random::{random};
+    use cc_map::utils::random::random;
+    use cc_map::utils::bit_operation::BitOperationTrait;
     use cc_map::interface::IDungeonsSeeder;
 
     #[storage]
@@ -195,13 +196,13 @@ mod DungeonsSeeder {
             seed
         }
 
-        fn get_size(self: @ContractState, seed: u64) -> u8 {
-            let size = random(seed.into(), 8_u128, 25_u128);
+        fn get_size(self: @ContractState, seed: u256) -> u8 {
+            let size = random(seed, 8, 25);
             size.try_into().unwrap()
         }
 
-        fn get_environment(self: @ContractState, seed: u64) -> u8 {
-            let rand = random(seed.into(), 0_u128, 100_u128);
+        fn get_environment(self: @ContractState, seed: u256) -> u8 {
+            let rand = random(seed, 0, 100);
 
             if rand >= 70 {
                 0
@@ -218,8 +219,8 @@ mod DungeonsSeeder {
             }
         }
 
-        fn get_name(self: @ContractState, seed: u128) -> (Array<felt252>, felt252, u8) {
-            let unique_seed = random(bit_operation_left(seed, 15_u32), 0_u128, 10000_u128);
+        fn get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+            let unique_seed = random(seed.left_shift(15), 0, 10000);
             let mut name_parts = ArrayTrait::<felt252>::new();
             let affinity = 'none';
             let legendary = 0;
@@ -231,18 +232,18 @@ mod DungeonsSeeder {
                 name_parts.append(a);
                 return (name_parts, affinity, legendary);
             } else {
-                let base_seed = random(bit_operation_left(seed, 16_u32), 0_u128, 38_u128);
+                let base_seed = random(seed.left_shift(16), 0, 38);
                 if unique_seed <= 300 {
                     // Person's Name + Base Land
-                    let people_seed = random(bit_operation_left(seed, 23_u32), 0_u128, 12_u128);
+                    let people_seed = random(seed.left_shift(23), 0, 12);
                     name_parts.append(self.PEOPLE.read(people_seed.into()));
                     name_parts.append(' ');
                     name_parts.append(self.LAND.read(base_seed.into()));
                 } else if unique_seed <= 1800 {
                     // Prefix + Base Land + Suffix
-                    let suffixs_random = random(bit_operation_left(seed, 27_u32), 0_u128, 59_u128);
+                    let suffixs_random = random(seed.left_shift(27), 0, 59);
                     let affinity = self.SUFFIXES.read(suffixs_random);
-                    let prefix_seed = random(bit_operation_left(seed, 42_u32), 0_u128, 29_u128);
+                    let prefix_seed = random(seed.left_shift(42), 0, 29);
 
                     name_parts.append(self.PREFIX.read(prefix_seed.into()));
                     name_parts.append(' ');
@@ -251,7 +252,7 @@ mod DungeonsSeeder {
                     name_parts.append(affinity);
                 } else if unique_seed <= 4000 {
                     // Base Land + Suffix
-                    let suffixs_random = random(bit_operation_left(seed, 51_u32), 0_u128, 59_u128);
+                    let suffixs_random = random(seed.left_shift(51), 0, 59);
 
                     name_parts.append(self.LAND.read(base_seed.into()));
                     name_parts.append(' of ');
@@ -259,7 +260,7 @@ mod DungeonsSeeder {
                 } else if unique_seed <= 6500 {
                     // Prefix + Base Land
                     let affinity = self.LAND.read(base_seed.into());
-                    let prefix_seed = random(bit_operation_left(seed, 59_u32), 0_u128, 29_u128);
+                    let prefix_seed = random(seed.left_shift(59), 0, 29);
 
                     name_parts.append(self.PREFIX.read(prefix_seed.into()));
                     name_parts.append(' ');

@@ -1,20 +1,23 @@
 #[starknet::contract]
 mod Dungeons {
+    use core::array::ArrayTrait;
     use starknet::ContractAddress;
     use openzeppelin::token::erc721::ERC721;
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use cc_map::dungeons_generator as generator;
+    use cc_map::dungeons_generator::MapTrait;
     // use cc_map::dungeons_seeder as seeder;
+    use cc_map::utils::map;
 
     // ------------------------------------------- Structs -------------------------------------------
 
-    #[derive(Copy, Drop)]
+    #[derive(Copy, Drop, Serde)]
     struct Dungeon {
         size: u8,
         environment: u8,
         structure: u8,
         legendary: u8,
-        // layout: Felt252Dict<Nullable<u256>>,
+        layout: Span<u256>,
         entities: EntityData,
         affinity: felt252,
         dungeon_name: Span<felt252>
@@ -75,14 +78,18 @@ mod Dungeons {
     fn claim(ref self: ContractState, token_id: u256) {}
 
     fn generate_dungeon(token_id: u256) -> Dungeon {
+        let seed: u256 = 0;
+        let size: u256 = 0;
+        let (mut layout, structure) = get_layout(seed, size, token_id);
         let mut entity_data = get_entities(token_id);
-        // let (mut layout, structure) = generator::get_layout(seed,)
+        // let (mut dungeon_name, mut affinity, legendary) = seeder::get_name();
+
         Dungeon {
             size: 0,
             environment: 0,
             structure: 0,
             legendary: 0,
-            // layout: Default::default(),
+            layout: array![].span(),
             entities: entity_data,
             affinity: 0,
             dungeon_name: array![].span()
@@ -91,11 +98,27 @@ mod Dungeons {
 
     fn get_entities(token_id: u256) -> EntityData {
         // let seed: u256 = seeder::get_seed(token_id);
-
         let seed: u256 = 0;
         let (x_array, y_array, t_array) = generator::get_entities(seed, token_id);
 
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
+    }
+
+    fn get_layout(seed: u256, size: u256, token_id: u256) -> (Span<u256>, u256) {
+        let (mut layout, structure) = generator::get_layout(seed, token_id);
+
+        let range = size * size / 256 + 1;
+        let mut result: Array<u256> = ArrayTrait::new();
+        let mut count = 0;
+        loop {
+            if count > range {
+                break;
+            }
+            result.append(layout.select(count));
+            count += 1;
+        };
+
+        (result.span(), structure)
     }
 }
 

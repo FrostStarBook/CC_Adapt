@@ -25,9 +25,9 @@ trait IDungeonsRender<TContractState> {
 trait IDungeonsSeeder<TContractState> {
     fn get_seed(self: @TContractState, token_id: u256) -> u256;
 
-    fn get_size(self: @TContractState, seed: u64) -> u8;
+    fn get_size(self: @TContractState, seed: u256) -> u8;
 
-    fn get_environment(self: @TContractState, seed: u64) -> u8;
+    fn get_environment(self: @TContractState, seed: u256) -> u8;
 
-    fn get_name(self: @TContractState, seed: u128) -> (Array<felt252>, felt252, u8);
+    fn get_name(self: @TContractState, seed: u256) -> (Array<felt252>, felt252, u8);
 }

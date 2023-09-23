@@ -5,8 +5,8 @@ mod Dungeons {
     use openzeppelin::token::erc721::ERC721;
     use openzeppelin::security::reentrancyguard::ReentrancyGuard;
     use cc_map::dungeons_generator as generator;
+    use cc_map::dungeons_seeder as seeder;
     use cc_map::dungeons_generator::MapTrait;
-    // use cc_map::dungeons_seeder as seeder;
     use cc_map::utils::map;
 
     // ------------------------------------------- Structs -------------------------------------------
@@ -97,7 +97,8 @@ mod Dungeons {
     }
 
     fn get_entities(token_id: u256) -> EntityData {
-        // let seed: u256 = seeder::get_seed(token_id);
+        // call contract may not be a good choice?
+        // let seed: u256 = seeder::DungeonsSeeder::__wrapper_get_seed();
         let seed: u256 = 0;
         let (x_array, y_array, t_array) = generator::get_entities(seed, token_id);
 

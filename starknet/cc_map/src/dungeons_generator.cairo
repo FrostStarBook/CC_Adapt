@@ -1,4 +1,4 @@
-use debug::PrintTrait;
+// use debug::PrintTrait;
 use cc_map::utils::bit_operation::BitOperationTrait;
 use cc_map::utils::random::random;
 use cc_map::utils::map::MapTrait;
@@ -57,7 +57,7 @@ fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
 }
 
 fn generate_rooms(ref settings: Settings) -> (Array<Room>, Felt252Dict<Nullable<u256>>) {
-    'generate_rooms'.print();
+    // 'generate_rooms'.print();
     let mut room_settings: RoomSettings = RoomSettings {
         min_rooms: settings.size / 3,
         max_rooms: settings.size,
@@ -130,7 +130,7 @@ fn explore_in_cavern(
 }
 
 fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
-    'generate_cavern'.print();
+    // 'generate_cavern'.print();
     let holes = settings.size / 2;
     let mut cavern: Felt252Dict<Nullable<u256>> = Default::default();
     let mut last_direction: u8 = 0;
@@ -154,7 +154,7 @@ fn generate_cavern(ref settings: Settings) -> Felt252Dict<Nullable<u256>> {
 }
 
 fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict<Nullable<u256>> {
-    'generate_hallways'.print();
+    // 'generate_hallways'.print();
     let mut hallways: Felt252Dict<Nullable<u256>> = Default::default();
 
     let rooms_span = rooms.span();
@@ -211,7 +211,7 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Felt252Dict
 fn generate_points(
     ref settings: Settings, ref map: Felt252Dict<Nullable<u256>>, probability: u256
 ) -> Felt252Dict<Nullable<u256>> {
-    'generate_points'.print();
+    // 'generate_points'.print();
     let mut points: Felt252Dict<Nullable<u256>> = Default::default();
 
     // maintain consistency with the source code
@@ -297,7 +297,7 @@ fn get_doors(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
 fn generate_entities(
     seed: u256, size: u256
 ) -> (Felt252Dict<Nullable<u256>>, Felt252Dict<Nullable<u256>>) {
-    'generate_entities'.print();
+    // 'generate_entities'.print();
     let mut settings: Settings = build_settings(seed, size);
 
     if random_with_counter_plus(ref settings, 0, 100) > 30 {
@@ -543,133 +543,135 @@ fn square_root(origin: u256) -> u256 {
 
 // ------------------------------------------- Test -------------------------------------------
 
-#[test]
-#[ignore]
-#[available_gas(30000000)]
-fn testset() {
-    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
-    map.set_bit(341);
-    'map(1)'.print();
-    map.select(1).print();
-}
+// Libfunc print is not allowed in the libfuncs list
 
-#[test]
-#[ignore]
-#[available_gas(30000000)]
-fn test_set_bit() {
-    let mut map: Felt252Dict<Nullable<u256>> = Default::default();
-    let key = 0;
-    // for test only, it won't be used this way
-    map.update(key, 2);
-    map.set_bit(20);
-    assert(map.select(key) == 1048578, 'set bit');
-    assert(map.get_bit(19) == 0, 'get bit of index 19');
-    assert(map.get_bit(20) == 1, 'get bit of index 20');
-    assert(map.count_bit(1) == 2, 'count bit');
-
-    let mut another_map: Felt252Dict<Nullable<u256>> = Default::default();
-    // for test only, it won't be used this way
-    another_map.update(key, 3);
-    another_map.set_bit(30);
-    assert(another_map.count_bit(1) == 3, 'count bit');
-
-    map.add_bit(ref another_map, 1);
-    assert(map.count_bit(1) == 4, 'add bit');
-    map.subtract_bit(ref another_map, 1);
-    assert(map.count_bit(1) == 1, 'subtract bit');
-}
-
-
-#[test]
-#[available_gas(30000000)]
-fn test_sqr() {
-    assert(square_root(17) == 4, 'compute square root of 17');
-    assert(square_root(24) == 4, 'compute square root of 24');
-}
-
-
-#[test]
+// #[test]
 // #[ignore]
-#[available_gas(300000000000000)]
-fn test_generate_room() {
-    {}
-    // tokenId 5678 cavern type
-    let seed: u256 = 54726856408304506636278424762823059598933394071647911965527120692794348915138;
-    let size: u256 = 20;
+// #[available_gas(30000000)]
+// fn testset() {
+//     let mut map: Felt252Dict<Nullable<u256>> = Default::default();
+//     map.set_bit(341);
+//     'map(1)'.print();
+//     map.select(1).print();
+// }
 
-    let (mut map, mut structure) = get_layout(seed, size);
-    // print_map(ref map, structure, size);
-    assert(
-        structure == 1
-            && map.select(0) == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c1462
-            && map.select(1) == 0xc1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
-        'cavern error'
-    );
-    // tokenId 5678 entities
-    let (x_array, y_array, t_array) = get_entities(seed, size);
+// #[test]
+// #[ignore]
+// #[available_gas(30000000)]
+// fn test_set_bit() {
+//     let mut map: Felt252Dict<Nullable<u256>> = Default::default();
+//     let key = 0;
+//     // for test only, it won't be used this way
+//     map.update(key, 2);
+//     map.set_bit(20);
+//     assert(map.select(key) == 1048578, 'set bit');
+//     assert(map.get_bit(19) == 0, 'get bit of index 19');
+//     assert(map.get_bit(20) == 1, 'get bit of index 20');
+//     assert(map.count_bit(1) == 2, 'count bit');
 
-    // print_array(@x_array, @y_array, @t_array);
+//     let mut another_map: Felt252Dict<Nullable<u256>> = Default::default();
+//     // for test only, it won't be used this way
+//     another_map.update(key, 3);
+//     another_map.set_bit(30);
+//     assert(another_map.count_bit(1) == 3, 'count bit');
 
-    assert(*x_array.at(0) == 0x10, 'x error');
-    assert(*y_array.at(0) == 0x12, 'y error');
-    assert(*t_array.at(0) == 0x1, 't error');
+//     map.add_bit(ref another_map, 1);
+//     assert(map.count_bit(1) == 4, 'add bit');
+//     map.subtract_bit(ref another_map, 1);
+//     assert(map.count_bit(1) == 1, 'subtract bit');
+// }
 
-    {}
-    // tokenId 6666 room type
-    let seed: u256 = 6335337818598560499429733180295617724328926230334923097623654911070136911834;
-    let size: u256 = 17;
 
-    let (mut map, mut structure) = get_layout(seed, size);
-    // print_map(ref map, structure, size);
-    assert(
-        structure == 0
-            && map.select(0) == 0x18000c0000003fbc1ffe03ef01f000ffc00000
-            && map.select(1) == 0x0,
-        'room error'
-    );
-}
+// #[test]
+// #[available_gas(30000000)]
+// fn test_sqr() {
+//     assert(square_root(17) == 4, 'compute square root of 17');
+//     assert(square_root(24) == 4, 'compute square root of 24');
+// }
 
-fn print_map(ref map: Felt252Dict<Nullable<u256>>, structure: u256, size: u256) {
-    '--------layout display--------'.print();
-    'structure'.print();
-    let structure: u128 = structure.try_into().unwrap();
-    structure.print();
-    let length = size * size / 256;
-    let mut count: u128 = 0;
-    loop {
-        if length + 1 == count.into() {
-            break;
-        }
 
-        let value: u256 = map.select(count.into());
-        'map index'.print();
-        count.print();
-        'map value'.print();
-        value.print();
+// #[test]
+// #[ignore]
+// #[available_gas(300000000000000)]
+// fn test_generate_room() {
+//     {}
+//     // tokenId 5678 cavern type
+//     let seed: u256 = 54726856408304506636278424762823059598933394071647911965527120692794348915138;
+//     let size: u256 = 20;
 
-        count += 1;
-    }
-}
+//     let (mut map, mut structure) = get_layout(seed, size);
+//     // print_map(ref map, structure, size);
+//     assert(
+//         structure == 1
+//             && map.select(0) == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c1462
+//             && map.select(1) == 0xc1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
+//         'cavern error'
+//     );
+//     // tokenId 5678 entities
+//     let (x_array, y_array, t_array) = get_entities(seed, size);
 
-fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u256>) {
-    '--------entities display-------'.print();
-    let mut limit = x_array.len();
-    loop {
-        if limit == 0 {
-            break;
-        }
+//     // print_array(@x_array, @y_array, @t_array);
 
-        let x: u128 = (*x_array.at(limit - 1)).try_into().expect('out of range');
-        let y: u128 = (*y_array.at(limit - 1)).try_into().expect('out of range');
-        let t: u128 = (*t_array.at(limit - 1)).try_into().expect('out of range');
-        '-- group --'.print();
-        'x'.print();
-        x.print();
-        'y'.print();
-        y.print();
-        't'.print();
-        t.print();
+//     assert(*x_array.at(0) == 0x10, 'x error');
+//     assert(*y_array.at(0) == 0x12, 'y error');
+//     assert(*t_array.at(0) == 0x1, 't error');
 
-        limit -= 1;
-    };
-}
+//     {}
+//     // tokenId 6666 room type
+//     let seed: u256 = 6335337818598560499429733180295617724328926230334923097623654911070136911834;
+//     let size: u256 = 17;
+
+//     let (mut map, mut structure) = get_layout(seed, size);
+//     // print_map(ref map, structure, size);
+//     assert(
+//         structure == 0
+//             && map.select(0) == 0x18000c0000003fbc1ffe03ef01f000ffc00000
+//             && map.select(1) == 0x0,
+//         'room error'
+//     );
+// }
+
+// fn print_map(ref map: Felt252Dict<Nullable<u256>>, structure: u256, size: u256) {
+//     '--------layout display--------'.print();
+//     'structure'.print();
+//     let structure: u128 = structure.try_into().unwrap();
+//     structure.print();
+//     let length = size * size / 256;
+//     let mut count: u128 = 0;
+//     loop {
+//         if length + 1 == count.into() {
+//             break;
+//         }
+
+//         let value: u256 = map.select(count.into());
+//         'map index'.print();
+//         count.print();
+//         'map value'.print();
+//         value.print();
+
+//         count += 1;
+//     }
+// }
+
+// fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u256>) {
+//     '--------entities display-------'.print();
+//     let mut limit = x_array.len();
+//     loop {
+//         if limit == 0 {
+//             break;
+//         }
+
+//         let x: u128 = (*x_array.at(limit - 1)).try_into().expect('out of range');
+//         let y: u128 = (*y_array.at(limit - 1)).try_into().expect('out of range');
+//         let t: u128 = (*t_array.at(limit - 1)).try_into().expect('out of range');
+//         '-- group --'.print();
+//         'x'.print();
+//         x.print();
+//         'y'.print();
+//         y.print();
+//         't'.print();
+//         t.print();
+
+//         limit -= 1;
+//     };
+// }

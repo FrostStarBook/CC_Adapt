@@ -106,7 +106,7 @@ mod Dungeons {
     }
 
     fn get_layout(seed: u256, size: u256, token_id: u256) -> (Span<u256>, u256) {
-        let (mut layout, structure) = generator::get_layout(seed, token_id);
+        let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
         let mut result: Array<u256> = ArrayTrait::new();

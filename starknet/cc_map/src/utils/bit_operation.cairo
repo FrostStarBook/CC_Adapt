@@ -1,52 +1,68 @@
 use core::traits::{Into, TryInto};
 use debug::PrintTrait;
 
+use integer::u512;
 
 #[generate_trait]
 impl BitOperation of BitOperationTrait {
-    fn left_shift(self: u128, count: u128) -> u128 {
-        let mut result: u128 = 1;
-        let mut loop_count = count;
+    fn left_shift(mut self: u256, mut count: u256) -> u256 {
         loop {
-            if loop_count == 0 {
+            if count == 0 {
                 break;
             }
-            result *= 2;
-            loop_count -= 1;
+            // overflow 2^255
+            if self >= 0x8000000000000000000000000000000000000000000000000000000000000000 {
+                self = (self - 0x8000000000000000000000000000000000000000000000000000000000000000)
+                    * 2;
+            } else {
+                self *= 2;
+            }
+
+            count -= 1;
         };
-        result *= self;
-        assert(result > self, 'over shift');
-        result
+
+        self
     }
 
-    fn right_shift(self: u128, count: u128) -> u128 {
-        let mut result: u128 = 1;
-        let mut loop_count = count;
+    fn right_shift(mut self: u256, mut count: u256) -> u256 {
         loop {
-            if loop_count == 0 {
+            if count == 0 {
                 break;
             }
-            result *= 2;
-            loop_count -= 1;
+            self /= 2;
+            count -= 1;
         };
-        result = self / result;
-        assert(result < self, 'over shift');
-        result
+        self
     }
 }
+
+
+#[test]
+#[ignore]
+#[available_gas(3000000000000)]
+fn test1() {
+    let i: u256 = 104616311173140485099082100255315365365044651156030064548209934585479422322683;
+    let mut count = 0;
+    loop {
+        if count > 1000 {
+            break;
+        }
+        (i.left_shift(count)).print();
+        count += 1;
+    }
+}
+
 
 #[test]
 #[available_gas(30000000)]
 fn test() {
-
-    let a: u128 = 1;
-    let b: u128 = 32;
-    let mut result: u128 = a.left_shift(b);
+    let a: u256 = 1;
+    let b: u256 = 32;
+    let mut result: u256 = a.left_shift(b);
     assert(result == 4294967296, 'left shift over');
 
-    let c: u128 = 128;
-    let d: u128 = 3;
+    let c: u256 = 128;
+    let d: u256 = 3;
     result = c.right_shift(d);
     assert(result == 16, 'right shift over');
-
 }

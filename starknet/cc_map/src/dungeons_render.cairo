@@ -1,11 +1,12 @@
 #[starknet::contract]
 mod DungeonsRender {
-    use array::ArrayTrait;
+    use core::clone::Clone;
+use core::array::SpanTrait;
+use array::ArrayTrait;
     use option::OptionTrait;
     use traits::{Into, TryInto};
-    use byte_array::{ByteArray};
     use cc_map::interface::IDungeonsRender;
-    use cc_map::dungeons::Dungeons::Dungeon;
+    use cc_map::dungeons::Dungeons::{Dungeon, EntityData};
 
     /// Data structure that stores our different maps (layout, doors, points)
     #[derive(Drop)]
@@ -90,9 +91,9 @@ mod DungeonsRender {
         fn draw(
             ref self: ContractState,
             dungeon: Dungeon,
-            x: Array<u8>,
-            y: Array<u8>,
-            entityData: Array<u8>
+            x: Span<u8>,
+            y: Span<u8>,
+            entity_data: Span<u8>
         ) -> Array<felt252> {
             // Hardcoded to save memory: Width = 100
             // Setup SVG and draw our background
@@ -116,32 +117,50 @@ mod DungeonsRender {
         }
 
         fn tokenURI(
-            ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: Array<u256>
+            ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
         ) -> Array<felt252> {
             let mut output: Array<felt252> = ArrayTrait::new();
 
             // Generate dungeon
-            output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entityType);
+            output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entity_data);
 
             // Base64 Encode svg and output
-            let mut json: ByteArray = Default::default();
+            let mut json: Array<felt252> = ArrayTrait::new();
             json.append('{"name": "Crypts and Caverns #');
             json.append(tokenId.try_into().unwrap());
-            json.append('", "description": "Crypts and Caverns is an onchain map generator that produces an infinite set of dungeons. Enemies, treasure, etc intentionally omitted for others to interpret. Feel free to use Crypts and Caverns in any way you want.", "attributes": [ {"trait_type": "name", "value": "');
-            json.append(dungeon.dungeon_name());
-            json.append('"}, {"trait_type": "size", "value": "');
+            json.append('", "description": "Crypts and ');
+            json.append('Caverns is an onchain map ');
+            json.append('generator that produces an ');
+            json.append('infinite set of dungeons. ');
+            json.append('Enemies, treasure, etc ');
+            json.append('intentionally omitted for');
+            json.append(' others to interpret. ');
+            json.append('Feel free to use Crypts and ');
+            json.append('Caverns in any way you want."');
+            json.append(', "attributes": [ {');
+            json.append('"trait_type": "name", ');
+            json.append('"value": "');
+            // json.append(dungeon.dungeon_name);
+            json.append('"}, {"trait_type": ');
+            json.append('"size", "value": "');
             json.append(dungeon.size.into());
             json.append('x');
             json.append(dungeon.size.into());
-            json.append('"}, {"trait_type": "environment", "value": "');
-            json.append(self.environmentName.read(dungeon.environment()));
-            json.append('"}, {"trait_type": "doors", "value": "');
-            json.append(entities[1]);
-            json.append('"}, {"trait_type": "points of interest", "value": "');
-            json.append(entities[0]);
-            json.append('"}, {"trait_type": "affinity", "value": "');
-            json.append(dungeon.affinity());
-            json.append('"}, {"trait_type": "legendary", "value": "');
+            json.append('"}, {"trait_type": ');
+            json.append('"environment", "value": "');
+            json.append(self.environmentName.read(dungeon.environment));
+            json.append('"}, {"trait_type": ');
+            json.append('"doors", "value": "');
+            // json.append(entities[1]);
+            json.append('"}, {"trait_type": ');
+            json.append('"points of interest",');
+            json.append(' "value": "');
+            // json.append(entities[0]);
+            json.append('"}, {"trait_type":');
+            json.append(' "affinity", "value": "');
+            json.append(dungeon.affinity);
+            json.append('"}, {"trait_type":');
+            json.append(' "legendary", "value": "');
             if (dungeon.legendary == 1) {
                 json.append('Yes');
             } else {
@@ -152,14 +171,15 @@ mod DungeonsRender {
             } else {
                 json.append('Cavern');
             }   
-            json.append('"}],"image": "data:image/svg+xml;base64,');
+            json.append('"}],"image":');
+            json.append(' "data:image/svg+xml;base64,');
             // TODO base64 encode svg
 
             json.append('"}');
             // TODO base64 encode json
 
             output.append('data:application/json;base64,');
-            output.append(json);
+            // output.append(json);
 
             output
         }

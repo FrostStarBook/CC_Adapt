@@ -12,6 +12,14 @@ fn random(seed: u256, min: u256, max: u256) -> u256 {
         + min
 }
 
+fn random_seed(blockhash: u256) -> u256 {
+    let output: u256 = keccak::keccak_u256s_be_inputs(array![blockhash].span());
+    
+    u256 {
+        low: integer::u128_byte_reverse(output.high), high: integer::u128_byte_reverse(output.low)
+    }
+}
+
 #[test]
 #[available_gas(30000000)]
 fn test() {
@@ -21,6 +29,4 @@ fn test() {
     let result = random(seed, min, max);
     assert(result == 9, 'random');
 }
-
-
 

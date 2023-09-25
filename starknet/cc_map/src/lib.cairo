@@ -31,7 +31,7 @@ mod Dungeons {
     struct Dungeon {
         size: u8,
         environment: u8,
-        structure: u8,
+        structure: u256,
         legendary: u8,
         layout: Array<u256>,
         entities: EntityData,
@@ -102,7 +102,7 @@ mod Dungeons {
         // -------------- dungeons ----------------
         // price: u256,
         // loot:ContractAddress,
-        seeds: LegacyMap::<u128, u256>,
+        seeds: LegacyMap::<u256, u256>,
         last_mint: u256,
         claimed: u256,
         restructed: bool,
@@ -126,22 +126,22 @@ mod Dungeons {
     #[external(v0)]
     fn claim(ref self: ContractState, token_id: u256) {}
 
-    fn generate_dungeon(token_id: u256) -> Dungeon {
-        let seed: u256 = 0;
-        let size: u256 = 0;
+    fn generate_dungeon(self: @ContractState, token_id: u256) -> Dungeon {
+        let seed: u256 = self.seeds.read(token_id);
+        let size: u256 = get_size(seed);
         let (mut layout, structure) = get_layout(seed, size, token_id);
         let mut entity_data = get_entities(token_id);
-        // let (mut dungeon_name, mut affinity, legendary) = seeder::get_name();
+        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 
         Dungeon {
-            size: 0,
-            environment: 0,
-            structure: 0,
-            legendary: 0,
-            layout: array![],
+            size: size.try_into().unwrap(),
+            environment: get_environment(token_id),
+            structure: structure,
+            legendary: legendary,
+            layout: layout,
             entities: entity_data,
-            affinity: 0,
-            dungeon_name: array![]
+            affinity: affinity,
+            dungeon_name: dungeon_name
         }
     }
 
@@ -154,7 +154,7 @@ mod Dungeons {
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
 
-    fn get_layout(seed: u256, size: u256, token_id: u256) -> (Span<u256>, u256) {
+    fn get_layout(seed: u256, size: u256, token_id: u256) -> (Array<u256>, u256) {
         let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
@@ -168,7 +168,7 @@ mod Dungeons {
             count += 1;
         };
 
-        (result.span(), structure)
+        (result, structure)
     }
 
     // --------------------------------------------- Seeder --------------------------------------------
@@ -181,12 +181,12 @@ mod Dungeons {
         seed
     }
 
-    fn get_size(self: @ContractState, seed: u256) -> u8 {
+    fn get_size(seed: u256) -> u256 {
         let size = random(seed, 8, 25);
-        size.try_into().unwrap()
+        size
     }
 
-    fn get_environment(self: @ContractState, seed: u256) -> u8 {
+    fn get_environment( seed: u256) -> u8 {
         let rand = random(seed, 0, 100);
 
         if rand >= 70 {
@@ -499,7 +499,6 @@ mod Dungeons {
     fn tokenURI(
         self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
     ) -> Array<felt252> {
-
         // Generate dungeon
         let mut output = draw(self, dungeon.clone());
 

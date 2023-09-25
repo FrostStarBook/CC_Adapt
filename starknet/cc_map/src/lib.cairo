@@ -4,6 +4,7 @@ mod utils;
 #[starknet::contract]
 mod Dungeons {
     // ------------------------------------------ Imports -------------------------------------------
+    use core::traits::Into;
     use core::array::ArrayTrait;
     use core::clone::Clone;
     use starknet::ContractAddress;
@@ -15,7 +16,7 @@ mod Dungeons {
     // ------------------------------------------- Structs -------------------------------------------
 
     #[derive(Copy, Drop, Serde)]
-    struct Dungeon {
+    struct DungeonSerde {
         size: u8,
         environment: u8,
         structure: u8,
@@ -24,6 +25,18 @@ mod Dungeons {
         entities: EntityData,
         affinity: felt252,
         dungeon_name: Span<felt252>
+    }
+
+    #[derive(Clone, Drop)]
+    struct Dungeon {
+        size: u8,
+        environment: u8,
+        structure: u8,
+        legendary: u8,
+        layout: Array<u256>,
+        entities: EntityData,
+        affinity: felt252,
+        dungeon_name: Array<felt252>
     }
 
     #[derive(Copy, Drop, Serde)]
@@ -49,8 +62,8 @@ mod Dungeons {
         layout: Span<u256>,
         parts: Span<felt252>,
         counter: u256,
-        numRects: u256,
-        lastStart: u256,
+        num_rects: u256,
+        last_start: u256,
     }
 
     #[derive(Copy, Drop)]
@@ -125,10 +138,10 @@ mod Dungeons {
             environment: 0,
             structure: 0,
             legendary: 0,
-            layout: array![].span(),
+            layout: array![],
             entities: entity_data,
             affinity: 0,
-            dungeon_name: array![].span()
+            dungeon_name: array![]
         }
     }
 
@@ -248,9 +261,11 @@ mod Dungeons {
 
     // --------------------------------------------- Render --------------------------------------------
 
-    fn draw(
-        self: @ContractState, dungeon: Dungeon, x: Span<u8>, y: Span<u8>, entity_data: Span<u8>
-    ) -> Array<felt252> {
+    fn draw(self: @ContractState, dungeon: Dungeon) -> Array<felt252> {
+        let x = dungeon.entities.x;
+        let y = dungeon.entities.y;
+        let entity_data = dungeon.entities.entity_data;
+
         // Hardcoded to save memory: Width = 100
         // Setup SVG and draw our background
         // We write at 100x100 and scale it 5x to 500x500 to avoid safari small rendering
@@ -267,24 +282,94 @@ mod Dungeons {
         parts.append(self.colors.read(dungeon.environment * 4));
         parts.append('" />');
 
-        parts = draw_name_plate(parts, dungeon.dungeon_name);
+        parts = draw_name_plate(parts, dungeon.dungeon_name.span());
 
         let (start, pixel) = get_width(dungeon.size);
 
-        let helper: RenderHelper = RenderHelper {
+        let mut helper: RenderHelper = RenderHelper {
             pixel: pixel,
             start: start,
-            layout: dungeon.layout,
+            layout: dungeon.layout.span(),
             parts: array![].span(),
             counter: 0,
-            numRects: 0,
-            lastStart: 0
+            num_rects: 0,
+            last_start: 0
         };
 
+        parts = append(parts, (chunk_dungeon(self, dungeon, ref helper)).span());
+        // parts.append(draw_entities(x, y, entity_data, dungeon, helper));
         parts.append('</svg>');
 
         parts
     }
+
+    fn arr_to_dict(origin: Array<u256>) -> Felt252Dict<Nullable<u256>> {
+        let mut result: Felt252Dict<Nullable<u256>> = Default::default();
+
+        let limit = origin.len();
+        let mut count = 0;
+        loop {
+            if count == limit {
+                break;
+            }
+
+            result.update(count.into(), *origin[count]);
+            count += 1;
+        };
+
+        result
+    }
+
+    fn chunk_dungeon(
+        self: @ContractState, dungeon: Dungeon, ref helper: RenderHelper
+    ) -> Array<felt252> {
+        let mut layout: Felt252Dict<Nullable<u256>> = arr_to_dict(dungeon.layout);
+        let mut parts: Array<felt252> = ArrayTrait::new();
+
+        let mut y = 0;
+        loop {
+            if y == dungeon.size {
+                break;
+            }
+
+            helper.last_start = helper.counter;
+            let mut row_parts: Array<felt252> = ArrayTrait::new();
+
+            let mut x = 0;
+            loop {
+                if x == dungeon.size {
+                    break;
+                }
+
+                if layout.get_bit(helper.counter) == 1
+                    && helper.counter > 0
+                    && layout.get_bit(helper.counter - 1) == 0 {
+                    helper.num_rects += 1;
+
+                    row_parts =
+                        draw_tile(
+                            row_parts,
+                            helper.start + (helper.last_start % dungeon.size.into()) * helper.pixel,
+                            helper.start + (helper.last_start / dungeon.size.into()) * helper.pixel,
+                            (helper.counter - helper.last_start) * helper.pixel,
+                            helper.pixel,
+                            self.colors.read(dungeon.environment * 4 + 1)
+                        );
+                } else if layout.get_bit(helper.counter) == 0
+                    && helper.counter > 0
+                    && layout.get_bit(helper.counter - 1) == 1 {
+                    helper.last_start = helper.counter;
+                }
+
+                x += 1;
+            };
+
+            y += 1;
+        };
+
+        parts
+    }
+
 
     fn draw_name_plate(mut parts: Array<felt252>, name: Span<felt252>) -> Array<felt252> {
         let mut name_length = count_length(parts.span());
@@ -321,7 +406,7 @@ mod Dungeons {
     }
 
     // Draw each entity as a pixel on the map
-    fn drawEntities(
+    fn draw_entities(
         self: @ContractState,
         x: Array<u8>,
         y: Array<u8>,
@@ -347,7 +432,7 @@ mod Dungeons {
         parts
     }
 
-    fn drawTile(
+    fn draw_tile(
         row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252
     ) -> Array<felt252> {
         let mut tile: Array<felt252> = row;
@@ -414,13 +499,9 @@ mod Dungeons {
     fn tokenURI(
         self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
     ) -> Array<felt252> {
-        let mut output: Array<felt252> = ArrayTrait::new();
 
         // Generate dungeon
-        output =
-            draw(
-                self, dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entity_data
-            );
+        let mut output = draw(self, dungeon.clone());
 
         // Base64 Encode svg and output
         let mut json: Array<felt252> = ArrayTrait::new();

@@ -4,6 +4,8 @@ mod utils;
 #[starknet::contract]
 mod Dungeons {
     // ------------------------------------------ Imports -------------------------------------------
+    use core::array::ArrayTrait;
+    use core::clone::Clone;
     use starknet::ContractAddress;
     use super::{
         utils::{random::{random}, bit_operation::BitOperationTrait, map::MapTrait},
@@ -44,8 +46,8 @@ mod Dungeons {
     struct RenderHelper {
         pixel: u256,
         start: u256,
-        layout: Span<(u8, u8)>,
-        parts: felt252,
+        layout: Span<u256>,
+        parts: Span<felt252>,
         counter: u256,
         numRects: u256,
         lastStart: u256,
@@ -265,11 +267,149 @@ mod Dungeons {
         parts.append(self.colors.read(dungeon.environment * 4));
         parts.append('" />');
 
+        parts = draw_name_plate(parts, dungeon.dungeon_name);
+
+        let (start, pixel) = get_width(dungeon.size);
+
+        let helper: RenderHelper = RenderHelper {
+            pixel: pixel,
+            start: start,
+            layout: dungeon.layout,
+            parts: array![].span(),
+            counter: 0,
+            numRects: 0,
+            lastStart: 0
+        };
+
         parts.append('</svg>');
 
         parts
     }
 
+    fn draw_name_plate(mut parts: Array<felt252>, name: Span<felt252>) -> Array<felt252> {
+        let mut name_length = count_length(parts.span());
+        let mut font_size = 0;
+        let mut multiplier = 0;
+        if name_length <= 25 {
+            font_size = 5;
+            multiplier = 3;
+        } else {
+            font_size = 4;
+            multiplier = 2;
+            name_length += 7;
+        }
+
+        parts.append('<g transform="scale ');
+        parts.append('(5 5)"><rect x="');
+        parts.append(((100 - ((name_length + 3) * multiplier)) / 2).into());
+        parts.append('" y="-1" width="');
+        parts.append(((name_length + 3) * multiplier).into());
+        parts.append('" height="9" stroke-width="0.3"');
+        parts.append(' stroke="black" fill="#FFA800"');
+        parts.append(' />');
+
+        parts.append('<text x="50" y="5.5" width="');
+        parts.append((name_length * 3).into());
+        parts.append('" font-family="monospace" ');
+        parts.append('font-size="');
+        parts.append(font_size.into());
+        parts.append('" text-anchor="middle">');
+        parts = append(parts, name);
+        parts.append('</text></g>');
+
+        parts
+    }
+
+    // Draw each entity as a pixel on the map
+    fn drawEntities(
+        self: @ContractState,
+        x: Array<u8>,
+        y: Array<u8>,
+        entityData: Array<u8>,
+        dungeon: Dungeon,
+        helper: RenderHelper
+    ) -> Array<felt252> {
+        let mut parts: Array<felt252> = ArrayTrait::new();
+
+        let mut i: usize = 1;
+        loop {
+            if i > entityData.len() {
+                break;
+            }
+            let xU256: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
+            let yU256: u256 = helper.start + (*y.at(i)).into() * helper.pixel;
+            let colorIndex: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
+            let color: felt252 = self.colors.read(colorIndex);
+            // parts = self.drawTile(parts, xU256, yU256, helper.pixel, helper.pixel, color);
+
+            i += 1;
+        };
+        parts
+    }
+
+    fn drawTile(
+        row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252
+    ) -> Array<felt252> {
+        let mut tile: Array<felt252> = row;
+        tile.append('<rect x="');
+        tile.append(x.try_into().unwrap());
+        tile.append('" y="');
+        tile.append(y.try_into().unwrap());
+        tile.append('" width="');
+        tile.append(width.try_into().unwrap());
+        tile.append('" height="');
+        tile.append(pixel.try_into().unwrap());
+        tile.append('" fill="#');
+        tile.append(color);
+        tile.append('" />');
+
+        tile
+    }
+
+    fn get_width(size: u8) -> (u256, u256) {
+        let size: u256 = size.into();
+        let pixel: u256 = 500 / (size + 3 * 2);
+        let start: u256 = (500 - pixel * size) / 2;
+        (start, pixel)
+    }
+
+    fn count_length(parts: Span<felt252>) -> u128 {
+        let limit = parts.len();
+        let mut length = 0;
+        let mut count = 0;
+        loop {
+            if count == limit {
+                break;
+            }
+
+            let mut part: u256 = (*parts[count]).into();
+            loop {
+                if part == 0 {
+                    break;
+                }
+
+                part = part / 256;
+                length += 1;
+            };
+
+            count += 1;
+        };
+        length
+    }
+
+    fn append(mut parts: Array<felt252>, mut name: Span<felt252>) -> Array<felt252> {
+        let pop = name.pop_front();
+
+        if (match pop {
+            Option::Some(v) => true,
+            Option::None => false
+        }) {
+            parts.append(*pop.unwrap());
+            append(parts, name)
+        } else {
+            parts
+        }
+    }
 
     fn tokenURI(
         self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
@@ -340,61 +480,6 @@ mod Dungeons {
         // output.append(json);
 
         output
-    }
-
-
-    // Draw each entity as a pixel on the map
-    fn drawEntities(
-        self: @ContractState,
-        x: Array<u8>,
-        y: Array<u8>,
-        entityData: Array<u8>,
-        dungeon: Dungeon,
-        helper: RenderHelper
-    ) -> Array<felt252> {
-        let mut parts: Array<felt252> = ArrayTrait::new();
-
-        let mut i: usize = 1;
-        loop {
-            if i > entityData.len() {
-                break;
-            }
-            let xU256: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
-            let yU256: u256 = helper.start + (*y.at(i)).into() * helper.pixel;
-            let colorIndex: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
-            let color: felt252 = self.colors.read(colorIndex);
-            // parts = self.drawTile(parts, xU256, yU256, helper.pixel, helper.pixel, color);
-
-            i += 1;
-        };
-        parts
-    }
-
-    fn drawTile(
-        row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252
-    ) -> Array<felt252> {
-        let mut tile: Array<felt252> = row;
-        tile.append('<rect x="');
-        tile.append(x.try_into().unwrap());
-        tile.append('" y="');
-        tile.append(y.try_into().unwrap());
-        tile.append('" width="');
-        tile.append(width.try_into().unwrap());
-        tile.append('" height="');
-        tile.append(pixel.try_into().unwrap());
-        tile.append('" fill="#');
-        tile.append(color);
-        tile.append('" />');
-
-        tile
-    }
-
-    fn getWidth(size: u256) -> (u256, u256) {
-        // Each 'pixel' should be equal widths and take into account dungeon size + allocate padding (3 pixels) on both sides
-        let pixel: u256 = 500 / (size + 3 * 2);
-        // Remove the width and divide by two to get the midpoint where we should start
-        let start: u256 = (500 - pixel * size) / 2;
-        (start, pixel)
     }
 
 

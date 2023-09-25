@@ -31,7 +31,7 @@ mod Dungeons {
     struct Dungeon {
         size: u8,
         environment: u8,
-        structure: u256,
+        structure: u8,
         legendary: u8,
         layout: Array<u256>,
         entities: EntityData,
@@ -154,7 +154,7 @@ mod Dungeons {
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
 
-    fn get_layout(seed: u256, size: u256, token_id: u256) -> (Array<u256>, u256) {
+    fn get_layout(seed: u256, size: u256, token_id: u256) -> (Array<u256>, u8) {
         let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
@@ -186,7 +186,7 @@ mod Dungeons {
         size
     }
 
-    fn get_environment( seed: u256) -> u8 {
+    fn get_environment(seed: u256) -> u8 {
         let rand = random(seed, 0, 100);
 
         if rand >= 70 {

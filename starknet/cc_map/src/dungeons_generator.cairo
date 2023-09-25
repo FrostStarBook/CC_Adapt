@@ -40,9 +40,9 @@ struct Room {
 
 // ------------------------------------------- Generator -------------------------------------------
 
-fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u256) {
+fn get_layout(seed: u256, size: u256) -> (Felt252Dict<Nullable<u256>>, u8) {
     let mut settings: Settings = build_settings(seed, size);
-    let mut structure: u256 = 0;
+    let mut structure: u8 = 0;
 
     if random_shift_counter_plus(ref settings, 0, 100) > 30 {
         let (mut rooms, mut floor) = generate_rooms(ref settings);

@@ -274,27 +274,5 @@ mod DungeonsSeeder {
         }
     }
 
-    fn bit_operation_left(seed: u128, bits: u32) -> u128 {
-        let mut _seed = seed;
-        let mut _bits: usize = bits;
-        loop {
-            if _bits < 1 {
-                break;
-            }
-
-            _seed *= 2;
-            _bits -= 1;
-        };
-        return _seed;
-    }
-
-    #[test]
-    #[available_gas(30000000)]
-    fn test_bit_operation_left() {
-        let mut seed = 3_u128;
-
-        let result = bit_operation_left(seed, 5_u32);
-        assert(result == 96, 'bit_operation normal');
-    }
 }
 

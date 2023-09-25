@@ -85,7 +85,7 @@ mod Dungeons {
 
     fn generate_dungeon(token_id: u256) -> Dungeon {
         // it should comes from the seeder
-        let result: felt252 = syscalls::get_block_hash_syscall(info::get_block_number() - 1)
+        let result: felt252 = syscalls::get_block_hash_syscall(info::get_block_number() - 10)
             .unwrap_syscall();
         let seed: u256 = random_seed(result.into());
         // let seed: u256 = seeder::get_seed(token_id);

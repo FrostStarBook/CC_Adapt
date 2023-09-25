@@ -1,18 +1,19 @@
 #[starknet::contract]
 mod DungeonsRender {
-    use array::ArrayTrait;
+    use core::clone::Clone;
+use core::array::SpanTrait;
+use array::ArrayTrait;
     use option::OptionTrait;
     use traits::{Into, TryInto};
-
     use cc_map::interface::IDungeonsRender;
-    use cc_map::dungeons::Dungeons::Dungeon;
+    use cc_map::dungeons::Dungeons::{Dungeon, EntityData};
 
     /// Data structure that stores our different maps (layout, doors, points)
     #[derive(Drop)]
     struct Maps {
-        layout: Array<felt252>,
-        doors: Array<felt252>,
-        points: Array<felt252>,
+        layout: Span<(u8, u8)>,
+        doors: Span<(u8, u8)>,
+        points: Span<(u8, u8)>,
     }
 
     /// Helper variables when iterating through and drawing dungeon tiles
@@ -20,7 +21,7 @@ mod DungeonsRender {
     struct RenderHelper {
         pixel: u256,
         start: u256,
-        layout: Array<felt252>,
+        layout: Span<(u8, u8)>,
         parts: felt252,
         counter: u256,
         numRects: u256,
@@ -90,9 +91,9 @@ mod DungeonsRender {
         fn draw(
             ref self: ContractState,
             dungeon: Dungeon,
-            x: Array<u8>,
-            y: Array<u8>,
-            entityData: Array<u8>
+            x: Span<u8>,
+            y: Span<u8>,
+            entity_data: Span<u8>
         ) -> Array<felt252> {
             // Hardcoded to save memory: Width = 100
             // Setup SVG and draw our background
@@ -116,21 +117,69 @@ mod DungeonsRender {
         }
 
         fn tokenURI(
-            ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: Array<u256>
+            ref self: ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
         ) -> Array<felt252> {
             let mut output: Array<felt252> = ArrayTrait::new();
 
             // Generate dungeon
-            // output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entityType);
+            output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entity_data);
 
-            let mut size: Array<felt252> = ArrayTrait::new();
-            size.append(dungeon.size.into());
-            size.append('x');
-            size.append(dungeon.size.into());
             // Base64 Encode svg and output
             let mut json: Array<felt252> = ArrayTrait::new();
             json.append('{"name": "Crypts and Caverns #');
             json.append(tokenId.try_into().unwrap());
+            json.append('", "description": "Crypts and ');
+            json.append('Caverns is an onchain map ');
+            json.append('generator that produces an ');
+            json.append('infinite set of dungeons. ');
+            json.append('Enemies, treasure, etc ');
+            json.append('intentionally omitted for');
+            json.append(' others to interpret. ');
+            json.append('Feel free to use Crypts and ');
+            json.append('Caverns in any way you want."');
+            json.append(', "attributes": [ {');
+            json.append('"trait_type": "name", ');
+            json.append('"value": "');
+            // json.append(dungeon.dungeon_name);
+            json.append('"}, {"trait_type": ');
+            json.append('"size", "value": "');
+            json.append(dungeon.size.into());
+            json.append('x');
+            json.append(dungeon.size.into());
+            json.append('"}, {"trait_type": ');
+            json.append('"environment", "value": "');
+            json.append(self.environmentName.read(dungeon.environment));
+            json.append('"}, {"trait_type": ');
+            json.append('"doors", "value": "');
+            // json.append(entities[1]);
+            json.append('"}, {"trait_type": ');
+            json.append('"points of interest",');
+            json.append(' "value": "');
+            // json.append(entities[0]);
+            json.append('"}, {"trait_type":');
+            json.append(' "affinity", "value": "');
+            json.append(dungeon.affinity);
+            json.append('"}, {"trait_type":');
+            json.append(' "legendary", "value": "');
+            if (dungeon.legendary == 1) {
+                json.append('Yes');
+            } else {
+                json.append('No');
+            }
+            if (dungeon.structure == 0) {
+                json.append('Crypt');
+            } else {
+                json.append('Cavern');
+            }   
+            json.append('"}],"image":');
+            json.append(' "data:image/svg+xml;base64,');
+            // TODO base64 encode svg
+
+            json.append('"}');
+            // TODO base64 encode json
+
+            output.append('data:application/json;base64,');
+            // output.append(json);
 
             output
         }
@@ -139,7 +188,6 @@ mod DungeonsRender {
     //
     // Internal
     //
-
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         // Draw each entity as a pixel on the map
@@ -208,6 +256,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    #[available_gas(30000000)]
     fn test_draw_tile() {
         let mut row: Array<felt252> = ArrayTrait::new();
         row.append('row');
@@ -220,6 +269,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    #[available_gas(30000000)]
     fn test_get_witdth() {
         let (start, pixel) = InternalFunctions::getWidth(4);
         assert(pixel == 50, 'pixel is right');

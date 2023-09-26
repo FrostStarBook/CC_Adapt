@@ -130,7 +130,7 @@ mod Dungeons {
     #[external(v0)]
     fn mint(ref self: ContractState) {
         assert(self.last_mint.read() < 9000, 'Token sold out');
-        assert(self.restricted.read(), 'Dungeon is restricted');
+        assert(!self.restricted.read(), 'Dungeon is restricted');
 
         let token_id = self.last_mint.read();
         self.last_mint.write(token_id + 1);
@@ -175,10 +175,12 @@ mod Dungeons {
     }
 
     #[external(v0)]
-    fn get_layout(
-        self: @ContractState, seed: u256, size: u256, token_id: u256
-    ) -> (Array<u256>, u8) {
+    fn get_layout(self: @ContractState, token_id: u256) -> (Array<u256>, u8) {
         is_valid(self, token_id);
+
+        let seed = get_seed(token_id);
+        let size = get_size(seed);
+        
         let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
@@ -622,6 +624,8 @@ mod Dungeons {
     #[constructor]
     fn constructor(ref self: ContractState) {
         self.restricted.write(false);
+        self.last_mint.write(0);
+        self.claimed.write(0);
 
         // --------------- seeder ---------------
         //init PREFIX

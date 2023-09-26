@@ -129,8 +129,8 @@ mod Dungeons {
 
     #[external(v0)]
     fn mint(ref self: ContractState) {
-        assert(self.last_mint.read() < 9000, "Token sold out");
-        assert(self.restricted.read(), "Dungeon is restricted");
+        assert(self.last_mint.read() < 9000, 'Token sold out');
+        assert(self.restricted.read(), 'Dungeon is restricted');
 
         let token_id = self.last_mint.read();
         self.last_mint.write(token_id + 1);
@@ -198,7 +198,7 @@ mod Dungeons {
     fn is_valid(self: @ContractState, token_id: u256) {
         assert(
             ERC721::InternalImpl::_exists(@ERC721::unsafe_new_contract_state(), token_id),
-            "Valid token"
+            'Valid token'
         );
     }
 

@@ -4,6 +4,7 @@ mod utils;
 #[starknet::contract]
 mod Dungeons {
     // ------------------------------------------ Imports -------------------------------------------
+    use core::byte_array::ByteArrayTrait;
     use core::traits::Into;
     use core::array::ArrayTrait;
     use core::clone::Clone;
@@ -261,6 +262,46 @@ mod Dungeons {
 
     // --------------------------------------------- Render --------------------------------------------
 
+    use debug::PrintTrait;
+
+    #[test]
+    #[available_gas(300000000)]
+    // #[ignore]
+    fn test() {
+        let mut arr: Array<felt252> = ArrayTrait::new();
+        arr.append('fnD56O0');
+        let a = 8;
+        let b = 0;
+        let c: felt252 = (a + b + 48).into();
+        arr.append(c.into());
+        arr.print();
+    }
+
+    fn append_number_ascii(mut parts: Array<felt252>, mut num: u256) -> Array<felt252> {
+        let part: Array<felt252> = append_number(ArrayTrait::<felt252>::new(), num);
+        let mut length = part.len();
+        loop {
+            if length == 0 {
+                break;
+            }
+            parts.append(*part[length - 1]);
+            length -= 1;
+        };
+        parts
+    }
+
+    fn append_number(mut part: Array<felt252>, mut num: u256) -> Array<felt252> {
+        if num != 0 {
+            let temp: u8 = (num % 10).try_into().unwrap();
+            part.append(temp.into());
+            num /= 10;
+            append_number(part, num)
+        } else {
+            part
+        }
+    }
+
+
     fn draw(self: @ContractState, dungeon: Dungeon) -> Array<felt252> {
         let x = dungeon.entities.x;
         let y = dungeon.entities.y;
@@ -496,72 +537,71 @@ mod Dungeons {
         }
     }
 
-    fn tokenURI(
-        self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
-    ) -> Array<felt252> {
-        // Generate dungeon
-        let mut output = draw(self, dungeon.clone());
+    // fn tokenURI(
+    //     self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
+    // ) -> Array<felt252> {
+    //     // Generate dungeon
+    //     let mut output = draw(self, dungeon.clone());
 
-        // Base64 Encode svg and output
-        let mut json: Array<felt252> = ArrayTrait::new();
-        json.append('{"name": "Crypts and Caverns #');
-        json.append(tokenId.try_into().unwrap());
-        json.append('", "description": "Crypts and ');
-        json.append('Caverns is an onchain map ');
-        json.append('generator that produces an ');
-        json.append('infinite set of dungeons. ');
-        json.append('Enemies, treasure, etc ');
-        json.append('intentionally omitted for');
-        json.append(' others to interpret. ');
-        json.append('Feel free to use Crypts and ');
-        json.append('Caverns in any way you want."');
-        json.append(', "attributes": [ {');
-        json.append('"trait_type": "name", ');
-        json.append('"value": "');
-        // json.append(dungeon.dungeon_name);
-        json.append('"}, {"trait_type": ');
-        json.append('"size", "value": "');
-        json.append(dungeon.size.into());
-        json.append('x');
-        json.append(dungeon.size.into());
-        json.append('"}, {"trait_type": ');
-        json.append('"environment", "value": "');
-        json.append(self.environmentName.read(dungeon.environment));
-        json.append('"}, {"trait_type": ');
-        json.append('"doors", "value": "');
-        // json.append(entities[1]);
-        json.append('"}, {"trait_type": ');
-        json.append('"points of interest",');
-        json.append(' "value": "');
-        // json.append(entities[0]);
-        json.append('"}, {"trait_type":');
-        json.append(' "affinity", "value": "');
-        json.append(dungeon.affinity);
-        json.append('"}, {"trait_type":');
-        json.append(' "legendary", "value": "');
-        if (dungeon.legendary == 1) {
-            json.append('Yes');
-        } else {
-            json.append('No');
-        }
-        if (dungeon.structure == 0) {
-            json.append('Crypt');
-        } else {
-            json.append('Cavern');
-        }
-        json.append('"}],"image":');
-        json.append(' "data:image/svg+xml;base64,');
-        // TODO base64 encode svg
+    //     // Base64 Encode svg and output
+    //     let mut json: Array<felt252> = ArrayTrait::new();
+    //     json.append('{"name": "Crypts and Caverns #');
+    //     json.append(tokenId.try_into().unwrap());
+    //     json.append('", "description": "Crypts and ');
+    //     json.append('Caverns is an onchain map ');
+    //     json.append('generator that produces an ');
+    //     json.append('infinite set of dungeons. ');
+    //     json.append('Enemies, treasure, etc ');
+    //     json.append('intentionally omitted for');
+    //     json.append(' others to interpret. ');
+    //     json.append('Feel free to use Crypts and ');
+    //     json.append('Caverns in any way you want."');
+    //     json.append(', "attributes": [ {');
+    //     json.append('"trait_type": "name", ');
+    //     json.append('"value": "');
+    //     // json.append(dungeon.dungeon_name);
+    //     json.append('"}, {"trait_type": ');
+    //     json.append('"size", "value": "');
+    //     json.append(dungeon.size.into());
+    //     json.append('x');
+    //     json.append(dungeon.size.into());
+    //     json.append('"}, {"trait_type": ');
+    //     json.append('"environment", "value": "');
+    //     json.append(self.environmentName.read(dungeon.environment));
+    //     json.append('"}, {"trait_type": ');
+    //     json.append('"doors", "value": "');
+    //     // json.append(entities[1]);
+    //     json.append('"}, {"trait_type": ');
+    //     json.append('"points of interest",');
+    //     json.append(' "value": "');
+    //     // json.append(entities[0]);
+    //     json.append('"}, {"trait_type":');
+    //     json.append(' "affinity", "value": "');
+    //     json.append(dungeon.affinity);
+    //     json.append('"}, {"trait_type":');
+    //     json.append(' "legendary", "value": "');
+    //     if (dungeon.legendary == 1) {
+    //         json.append('Yes');
+    //     } else {
+    //         json.append('No');
+    //     }
+    //     if (dungeon.structure == 0) {
+    //         json.append('Crypt');
+    //     } else {
+    //         json.append('Cavern');
+    //     }
+    //     json.append('"}],"image":');
+    //     json.append(' "data:image/svg+xml;base64,');
+    //     // TODO base64 encode svg
 
-        json.append('"}');
-        // TODO base64 encode json
+    //     json.append('"}');
+    //     // TODO base64 encode json
 
-        output.append('data:application/json;base64,');
-        // output.append(json);
+    //     output.append('data:application/json;base64,');
+    //     // output.append(json);
 
-        output
-    }
-
+    //     output
+    // }
 
     // ------------------------------------------ Constructor ------------------------------------------
 

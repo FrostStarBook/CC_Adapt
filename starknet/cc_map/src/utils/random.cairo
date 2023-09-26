@@ -1,5 +1,3 @@
-// use debug::PrintTrait;
-
 // ------------------------------------ random --------------------------------------
 
 fn random(seed: u256, min: u256, max: u256) -> u256 {
@@ -21,6 +19,4 @@ fn test() {
     let result = random(seed, min, max);
     assert(result == 9, 'random');
 }
-
-
 

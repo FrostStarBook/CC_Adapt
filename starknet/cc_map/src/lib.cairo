@@ -262,20 +262,21 @@ mod Dungeons {
 
     // --------------------------------------------- Render --------------------------------------------
 
-    use debug::PrintTrait;
+    // use debug::PrintTrait;
 
-    #[test]
-    #[available_gas(300000000)]
-    // #[ignore]
-    fn test() {
-        let mut arr: Array<felt252> = ArrayTrait::new();
-        arr.append('fnD56O0');
-        let a = 8;
-        let b = 0;
-        let c: felt252 = (a + b + 48).into();
-        arr.append(c.into());
-        arr.print();
-    }
+    // #[test]
+    // #[available_gas(300000000)]
+    // // #[ignore]
+    // fn test() {
+    //     let mut arr: Array<felt252> = ArrayTrait::new();
+    //     arr.append('fnD56O0');
+    //     let a = 8;
+    //     a.print();
+    //     let b = 34;
+    //     let c: felt252 = (a + b).into();
+    //     arr = append_number_ascii(arr, c.into());
+    //     arr.print();
+    // }
 
     fn append_number_ascii(mut parts: Array<felt252>, mut num: u256) -> Array<felt252> {
         let part: Array<felt252> = append_number(ArrayTrait::<felt252>::new(), num);
@@ -293,7 +294,7 @@ mod Dungeons {
     fn append_number(mut part: Array<felt252>, mut num: u256) -> Array<felt252> {
         if num != 0 {
             let temp: u8 = (num % 10).try_into().unwrap();
-            part.append(temp.into());
+            part.append((temp + 48).into());
             num /= 10;
             append_number(part, num)
         } else {
@@ -427,18 +428,18 @@ mod Dungeons {
 
         parts.append('<g transform="scale ');
         parts.append('(5 5)"><rect x="');
-        parts.append(((100 - ((name_length + 3) * multiplier)) / 2).into());
+        parts = append_number_ascii(parts, ((100 - ((name_length + 3) * multiplier)) / 2).into());
         parts.append('" y="-1" width="');
-        parts.append(((name_length + 3) * multiplier).into());
+        parts = append_number_ascii(parts, ((name_length + 3) * multiplier).into());
         parts.append('" height="9" stroke-width="0.3"');
         parts.append(' stroke="black" fill="#FFA800"');
         parts.append(' />');
 
         parts.append('<text x="50" y="5.5" width="');
-        parts.append((name_length * 3).into());
+        parts = append_number_ascii(parts, (name_length * 3).into());
         parts.append('" font-family="monospace" ');
         parts.append('font-size="');
-        parts.append(font_size.into());
+        parts = append_number_ascii(parts, font_size.into());
         parts.append('" text-anchor="middle">');
         parts = append(parts, name);
         parts.append('</text></g>');
@@ -478,13 +479,13 @@ mod Dungeons {
     ) -> Array<felt252> {
         let mut tile: Array<felt252> = row;
         tile.append('<rect x="');
-        tile.append(x.try_into().unwrap());
+        tile = append_number_ascii(tile, x.try_into().unwrap());
         tile.append('" y="');
-        tile.append(y.try_into().unwrap());
+        tile = append_number_ascii(tile, y.try_into().unwrap());
         tile.append('" width="');
-        tile.append(width.try_into().unwrap());
+        tile = append_number_ascii(tile, width.try_into().unwrap());
         tile.append('" height="');
-        tile.append(pixel.try_into().unwrap());
+        tile = append_number_ascii(tile, pixel.try_into().unwrap());
         tile.append('" fill="#');
         tile.append(color);
         tile.append('" />');
@@ -537,6 +538,7 @@ mod Dungeons {
         }
     }
 
+    // TODO
     // fn tokenURI(
     //     self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
     // ) -> Array<felt252> {

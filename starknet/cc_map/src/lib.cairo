@@ -149,7 +149,7 @@ mod Dungeons {
     fn generate_dungeon(self: @ContractState, token_id: u256) -> Dungeon {
         let seed: u256 = self.seeds.read(token_id);
         let size: u256 = get_size(seed);
-        let (mut layout, structure) = get_layout(self, seed, size, token_id);
+        let (mut layout, structure) = get_layout(self, seed);
         let mut entity_data = get_entities(token_id);
         let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 

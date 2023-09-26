@@ -173,6 +173,7 @@ mod Dungeons {
     fn get_layout(
         self: @ContractState, seed: u256, size: u256, token_id: u256
     ) -> (Array<u256>, u8) {
+        is_valid(self, token_id);
         let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
@@ -187,6 +188,13 @@ mod Dungeons {
         };
 
         (result, structure)
+    }
+
+    fn is_valid(self: @ContractState, token_id: u256) {
+        assert(
+            ERC721::InternalImpl::_exists(@ERC721::unsafe_new_contract_state(), token_id),
+            "Valid token"
+        );
     }
 
     // --------------------------------------------- Seeder --------------------------------------------

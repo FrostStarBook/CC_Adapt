@@ -11,4 +11,4 @@ openzeppelin = { path = "../../openzeppelin" }
 
 [[target.starknet-contract]]
 # sierra = true
-# casm = true
+casm = true

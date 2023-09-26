@@ -292,22 +292,6 @@ mod Dungeons {
 
     // --------------------------------------------- Render --------------------------------------------
 
-    // use debug::PrintTrait;
-
-    // #[test]
-    // #[available_gas(300000000)]
-    // // #[ignore]
-    // fn test() {
-    //     let mut arr: Array<felt252> = ArrayTrait::new();
-    //     arr.append('fnD56O0');
-    //     let a = 8;
-    //     a.print();
-    //     let b = 34;
-    //     let c: felt252 = (a + b).into();
-    //     arr = append_number_ascii(arr, c.into());
-    //     arr.print();
-    // }
-
     fn append_number_ascii(mut parts: Array<felt252>, mut num: u256) -> Array<felt252> {
         let part: Array<felt252> = append_number(ArrayTrait::<felt252>::new(), num);
         let mut length = part.len();
@@ -331,7 +315,6 @@ mod Dungeons {
             part
         }
     }
-
 
     fn draw(self: @ContractState, dungeon: Dungeon) -> Array<felt252> {
         let x = dungeon.entities.x;
@@ -442,7 +425,6 @@ mod Dungeons {
         parts
     }
 
-
     fn draw_name_plate(mut parts: Array<felt252>, name: Span<felt252>) -> Array<felt252> {
         let mut name_length = count_length(parts.span());
         let mut font_size = 0;
@@ -493,11 +475,11 @@ mod Dungeons {
             if i > entityData.len() {
                 break;
             }
-            let xU256: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
-            let yU256: u256 = helper.start + (*y.at(i)).into() * helper.pixel;
-            let colorIndex: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
-            let color: felt252 = self.colors.read(colorIndex);
-            // parts = self.drawTile(parts, xU256, yU256, helper.pixel, helper.pixel, color);
+            let x: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
+            let y: u256 = helper.start + (*y.at(i)).into() * helper.pixel;
+            let color_index: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
+            let color: felt252 = self.colors.read(color_index);
+            parts = draw_tile(parts, x, y, helper.pixel, helper.pixel, color);
 
             i += 1;
         };

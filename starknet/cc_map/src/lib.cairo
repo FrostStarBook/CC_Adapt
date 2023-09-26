@@ -1,6 +1,7 @@
 mod dungeons_generator;
 mod utils;
 
+
 #[starknet::contract]
 mod Dungeons {
     // ------------------------------------------ Imports -------------------------------------------
@@ -8,11 +9,13 @@ mod Dungeons {
     use core::traits::Into;
     use core::array::ArrayTrait;
     use core::clone::Clone;
-    use starknet::ContractAddress;
+    use starknet::{ContractAddress, info::get_caller_address};
     use super::{
         utils::{random::{random}, bit_operation::BitOperationTrait, map::MapTrait},
         dungeons_generator as generator
     };
+
+    use openzeppelin::token::erc721::ERC721;
 
     // ------------------------------------------- Structs -------------------------------------------
 
@@ -106,7 +109,7 @@ mod Dungeons {
         seeds: LegacyMap::<u256, u256>,
         last_mint: u256,
         claimed: u256,
-        restructed: bool,
+        restricted: bool,
         // --------------- seeder ----------------
         PREFIX: LegacyMap::<u256, felt252>,
         LAND: LegacyMap::<u256, felt252>,
@@ -125,12 +128,23 @@ mod Dungeons {
     // ------------------------------------------- Dungeon -------------------------------------------
 
     #[external(v0)]
-    fn claim(ref self: ContractState, token_id: u256) {}
+    fn mint(ref self: ContractState) {
+        assert(self.last_mint.read() < 9000, "Token sold out");
+        assert(self.restricted.read(), "Dungeon is restricted");
+
+        let token_id = self.last_mint.read();
+        self.last_mint.write(token_id + 1);
+        self.seeds.write(token_id, get_seed(token_id));
+
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::InternalImpl::_mint(ref state, get_caller_address(), token_id);
+        self.emit(Minted { account: get_caller_address(), token_id });
+    }
 
     fn generate_dungeon(self: @ContractState, token_id: u256) -> Dungeon {
         let seed: u256 = self.seeds.read(token_id);
         let size: u256 = get_size(seed);
-        let (mut layout, structure) = get_layout(seed, size, token_id);
+        let (mut layout, structure) = get_layout(self, seed, size, token_id);
         let mut entity_data = get_entities(token_id);
         let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 
@@ -155,7 +169,10 @@ mod Dungeons {
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
 
-    fn get_layout(seed: u256, size: u256, token_id: u256) -> (Array<u256>, u8) {
+    #[external(v0)]
+    fn get_layout(
+        self: @ContractState, seed: u256, size: u256, token_id: u256
+    ) -> (Array<u256>, u8) {
         let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
@@ -174,7 +191,7 @@ mod Dungeons {
 
     // --------------------------------------------- Seeder --------------------------------------------
 
-    fn get_seed(self: @ContractState, token_id: u256) -> u256 {
+    fn get_seed(token_id: u256) -> u256 {
         let block_time = starknet::get_block_timestamp();
         let b_u256_time: u256 = block_time.into();
         let input = array![b_u256_time, token_id];
@@ -338,8 +355,8 @@ mod Dungeons {
             last_start: 0
         };
 
-        parts = append(parts, (chunk_dungeon(self, dungeon, ref helper)).span());
-        // parts.append(draw_entities(x, y, entity_data, dungeon, helper));
+        parts = append(parts, (chunk_dungeon(self, dungeon.clone(), ref helper)).span());
+        parts = append(parts, draw_entities(self, x, y, entity_data, dungeon, helper).span());
         parts.append('</svg>');
 
         parts
@@ -450,9 +467,9 @@ mod Dungeons {
     // Draw each entity as a pixel on the map
     fn draw_entities(
         self: @ContractState,
-        x: Array<u8>,
-        y: Array<u8>,
-        entityData: Array<u8>,
+        x: Span<u8>,
+        y: Span<u8>,
+        entityData: Span<u8>,
         dungeon: Dungeon,
         helper: RenderHelper
     ) -> Array<felt252> {
@@ -609,6 +626,8 @@ mod Dungeons {
 
     #[constructor]
     fn constructor(ref self: ContractState) {
+        self.restricted.write(false);
+
         // --------------- seeder ---------------
         //init PREFIX
         self.PREFIX.write(0, 'Abyssal');

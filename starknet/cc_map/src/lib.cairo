@@ -141,6 +141,11 @@ mod Dungeons {
         self.emit(Minted { account: get_caller_address(), token_id });
     }
 
+    #[external(v0)]
+    fn get_svg(self: @ContractState, token_id: u256) -> Array<felt252> {
+        draw(self, generate_dungeon(self, token_id))
+    }
+
     fn generate_dungeon(self: @ContractState, token_id: u256) -> Dungeon {
         let seed: u256 = self.seeds.read(token_id);
         let size: u256 = get_size(seed);
@@ -504,13 +509,13 @@ mod Dungeons {
     ) -> Array<felt252> {
         let mut tile: Array<felt252> = row;
         tile.append('<rect x="');
-        tile = append_number_ascii(tile, x.try_into().unwrap());
+        tile = append_number_ascii(tile, x);
         tile.append('" y="');
-        tile = append_number_ascii(tile, y.try_into().unwrap());
+        tile = append_number_ascii(tile, y);
         tile.append('" width="');
-        tile = append_number_ascii(tile, width.try_into().unwrap());
+        tile = append_number_ascii(tile, width);
         tile.append('" height="');
-        tile = append_number_ascii(tile, pixel.try_into().unwrap());
+        tile = append_number_ascii(tile, pixel);
         tile.append('" fill="#');
         tile.append(color);
         tile.append('" />');

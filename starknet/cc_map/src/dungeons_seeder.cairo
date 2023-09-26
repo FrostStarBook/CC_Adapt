@@ -273,6 +273,5 @@ mod DungeonsSeeder {
             return (name_parts, affinity, legendary);
         }
     }
-
 }
 

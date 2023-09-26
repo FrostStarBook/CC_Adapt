@@ -540,7 +540,6 @@ fn square_root(origin: u256) -> u256 {
 
     return x;
 }
-
 // ------------------------------------------- Test -------------------------------------------
 
 // Libfunc print is not allowed in the libfuncs list
@@ -581,14 +580,12 @@ fn square_root(origin: u256) -> u256 {
 //     assert(map.count_bit(1) == 1, 'subtract bit');
 // }
 
-
 // #[test]
 // #[available_gas(30000000)]
 // fn test_sqr() {
 //     assert(square_root(17) == 4, 'compute square root of 17');
 //     assert(square_root(24) == 4, 'compute square root of 24');
 // }
-
 
 // #[test]
 // #[ignore]
@@ -675,3 +672,4 @@ fn square_root(origin: u256) -> u256 {
 //         limit -= 1;
 //     };
 // }
+

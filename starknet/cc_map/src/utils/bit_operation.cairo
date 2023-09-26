@@ -34,7 +34,6 @@ impl BitOperation of BitOperationTrait {
         self
     }
 }
-
 // Libfunc print is not allowed in the libfuncs list
 
 // #[test]
@@ -52,7 +51,6 @@ impl BitOperation of BitOperationTrait {
 //     }
 // }
 
-
 // #[test]
 // #[available_gas(30000000)]
 // fn test() {
@@ -66,3 +64,4 @@ impl BitOperation of BitOperationTrait {
 //     result = c.right_shift(d);
 //     assert(result == 16, 'right shift over');
 // }
+

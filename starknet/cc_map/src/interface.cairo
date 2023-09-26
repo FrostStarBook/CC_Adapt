@@ -9,11 +9,7 @@ use array::ArrayTrait;
 #[starknet::interface]
 trait IDungeonsRender<TContractState> {
     fn draw(
-        ref self: TContractState,
-        dungeon: Dungeon,
-        x: Span<u8>,
-        y: Span<u8>,
-        entity_data: Span<u8>
+        ref self: TContractState, dungeon: Dungeon, x: Span<u8>, y: Span<u8>, entity_data: Span<u8>
     ) -> Array<felt252>;
 
     fn tokenURI(

@@ -27,7 +27,7 @@ mod Dungeons {
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
-        Minted: Minted, 
+        Minted: Minted,
     }
 
     #[derive(Drop, starknet::Event)]

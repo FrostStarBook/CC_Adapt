@@ -1,8 +1,8 @@
 #[starknet::contract]
 mod DungeonsRender {
     use core::clone::Clone;
-use core::array::SpanTrait;
-use array::ArrayTrait;
+    use core::array::SpanTrait;
+    use array::ArrayTrait;
     use option::OptionTrait;
     use traits::{Into, TryInto};
     use cc_map::interface::IDungeonsRender;
@@ -122,7 +122,10 @@ use array::ArrayTrait;
             let mut output: Array<felt252> = ArrayTrait::new();
 
             // Generate dungeon
-            output = self.draw(dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entity_data);
+            output = self
+                .draw(
+                    dungeon, dungeon.entities.x, dungeon.entities.y, dungeon.entities.entity_data
+                );
 
             // Base64 Encode svg and output
             let mut json: Array<felt252> = ArrayTrait::new();
@@ -170,7 +173,7 @@ use array::ArrayTrait;
                 json.append('Crypt');
             } else {
                 json.append('Cavern');
-            }   
+            }
             json.append('"}],"image":');
             json.append(' "data:image/svg+xml;base64,');
             // TODO base64 encode svg

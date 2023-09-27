@@ -1,7 +1,6 @@
 use nullable::{NullableTrait, FromNullableResult, nullable_from_box, match_nullable};
 use super::bit_operation::BitOperationTrait;
 
-
 // ------------------------------------------- MapTrait -------------------------------------------
 
 #[generate_trait]

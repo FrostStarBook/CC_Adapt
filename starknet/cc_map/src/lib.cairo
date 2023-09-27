@@ -150,6 +150,21 @@ mod Dungeons {
     }
 
     #[external(v0)]
+    fn test_get_layout(self: @ContractState, seed: u256) -> (Array<u256>, u8) {
+        get_layout(self, seed, get_size(seed))
+    }
+
+    #[external(v0)]
+    fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+        get_name(self, seed)
+    }
+
+    #[external(v0)]
+    fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
+        generator::get_entities(seed, get_size(seed))
+    }
+
+    #[external(v0)]
     fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
         let size: u256 = get_size(seed);
 

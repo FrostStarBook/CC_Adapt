@@ -145,6 +145,33 @@ mod Dungeons {
     // }
 
     #[external(v0)]
+    fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
+        draw(self, test_generate_dungeon(self, seed))
+    }
+
+    #[external(v0)]
+    fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
+        let size: u256 = get_size(seed);
+
+        let (x_array, y_array, t_array) = generator::get_entities(seed, size);
+        let (mut layout, structure) = get_layout(self, seed, size);
+        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
+
+        DungeonSerde {
+            size: size.try_into().unwrap(),
+            environment: get_environment(seed),
+            structure: structure,
+            legendary: legendary,
+            layout: layout.span(),
+            entities: EntityData {
+                x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
+            },
+            affinity: affinity,
+            dungeon_name: dungeon_name.span()
+        }
+    }
+
+    #[external(v0)]
     fn mint(ref self: ContractState) {
         assert(self.last_mint.read() < 9000, 'Token sold out');
         assert(!self.restricted.read(), 'Dungeon is restricted');
@@ -156,6 +183,11 @@ mod Dungeons {
         let mut state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::_mint(ref state, get_caller_address(), token_id);
         self.emit(Minted { account: get_caller_address(), token_id });
+    }
+
+    #[external(v0)]
+    fn get_seeds(self: @ContractState, token_id: u256) -> u256 {
+        self.seeds.read(token_id)
     }
 
     #[external(v0)]
@@ -188,11 +220,10 @@ mod Dungeons {
 
     fn get_entities(self: @ContractState, token_id: u256) -> EntityData {
         // 'get_entities'.print();
-        is_valid(self, token_id);
+        // is_valid(self, token_id);
 
-        let (x_array, y_array, t_array) = generator::get_entities(
-            self.seeds.read(token_id), get_size(token_id)
-        );
+        let seed = self.seeds.read(token_id);
+        let (x_array, y_array, t_array) = generator::get_entities(seed, get_size(seed));
 
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }

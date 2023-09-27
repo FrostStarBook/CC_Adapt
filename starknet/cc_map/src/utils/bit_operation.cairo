@@ -25,7 +25,7 @@ impl BitOperation of BitOperationTrait {
 
     fn right_shift(mut self: u256, mut count: u256) -> u256 {
         loop {
-            if count == 0 {
+            if count == 0 || self == 0{
                 break;
             }
             self /= 2;

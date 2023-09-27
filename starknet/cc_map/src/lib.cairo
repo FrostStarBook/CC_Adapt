@@ -127,13 +127,30 @@ mod Dungeons {
 
     // ------------------------------------------- Dungeon -------------------------------------------
 
+    // use debug::PrintTrait;
+    // #[test]
+    // #[available_gas(300000000000000)]
+    // fn testttt(ref self: ContractState) {
+    //     let dungeon = generate_dungeon(@self, 3465);
+
+    //     let mut arr: Array<felt252> = draw(@self, dungeon);
+    //     let mut l = arr.len();
+    //     loop {
+    //         if l == 0 {
+    //             break;
+    //         }
+    //         arr.pop_front().unwrap().print();
+    //         l -= 1;
+    //     }
+    // }
+
     #[external(v0)]
     fn mint(ref self: ContractState) {
         assert(self.last_mint.read() < 9000, 'Token sold out');
         assert(!self.restricted.read(), 'Dungeon is restricted');
 
-        let token_id = self.last_mint.read();
-        self.last_mint.write(token_id + 1);
+        let token_id = self.last_mint.read() + 1;
+        self.last_mint.write(token_id);
         self.seeds.write(token_id, get_seed(token_id));
 
         let mut state = ERC721::unsafe_new_contract_state();
@@ -146,41 +163,44 @@ mod Dungeons {
         draw(self, generate_dungeon(self, token_id))
     }
 
-    fn generate_dungeon(self: @ContractState, token_id: u256) -> Dungeon {
+    #[external(v0)]
+    fn generate_dungeon(self: @ContractState, token_id: u256) -> DungeonSerde {
         let seed: u256 = self.seeds.read(token_id);
         let size: u256 = get_size(seed);
-        let (mut layout, structure) = get_layout(self, seed);
-        let mut entity_data = get_entities(token_id);
+
+        let (x_array, y_array, t_array) = generator::get_entities(seed, size);
+        let (mut layout, structure) = get_layout(self, seed, size);
         let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 
-        Dungeon {
+        DungeonSerde {
             size: size.try_into().unwrap(),
             environment: get_environment(token_id),
             structure: structure,
             legendary: legendary,
-            layout: layout,
-            entities: entity_data,
+            layout: layout.span(),
+            entities: EntityData {
+                x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
+            },
             affinity: affinity,
-            dungeon_name: dungeon_name
+            dungeon_name: dungeon_name.span()
         }
     }
 
-    fn get_entities(token_id: u256) -> EntityData {
-        // call contract may not be a good choice?
-        // let seed: u256 = seeder::DungeonsSeeder::__wrapper_get_seed();
-        let seed: u256 = 0;
-        let (x_array, y_array, t_array) = generator::get_entities(seed, token_id);
+    fn get_entities(self: @ContractState, token_id: u256) -> EntityData {
+        // 'get_entities'.print();
+        is_valid(self, token_id);
+
+        let (x_array, y_array, t_array) = generator::get_entities(
+            self.seeds.read(token_id), get_size(token_id)
+        );
 
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
 
-    #[external(v0)]
-    fn get_layout(self: @ContractState, token_id: u256) -> (Array<u256>, u8) {
-        is_valid(self, token_id);
+    fn get_layout(self: @ContractState, seed: u256, size: u256) -> (Array<u256>, u8) {
+        // 'get_layout'.print();
+        // is_valid(self, token_id);
 
-        let seed = get_seed(token_id);
-        let size = get_size(seed);
-        
         let (mut layout, structure) = generator::get_layout(seed, size);
 
         let range = size * size / 256 + 1;
@@ -206,6 +226,7 @@ mod Dungeons {
 
     // --------------------------------------------- Seeder --------------------------------------------
 
+    // for testnet only
     fn get_seed(token_id: u256) -> u256 {
         let block_time = starknet::get_block_timestamp();
         let b_u256_time: u256 = block_time.into();
@@ -215,12 +236,12 @@ mod Dungeons {
     }
 
     fn get_size(seed: u256) -> u256 {
-        let size = random(seed, 8, 25);
+        let size = random(seed.left_shift(4), 8, 25);
         size
     }
 
     fn get_environment(seed: u256) -> u8 {
-        let rand = random(seed, 0, 100);
+        let rand = random(seed.left_shift(8), 0, 100);
 
         if rand >= 70 {
             0
@@ -238,7 +259,9 @@ mod Dungeons {
     }
 
     fn get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+        // 'get_name'.print();
         let unique_seed = random(seed.left_shift(15), 0, 10000);
+
         let mut name_parts = ArrayTrait::<felt252>::new();
         let affinity = 'none';
         let legendary = 0;
@@ -251,46 +274,46 @@ mod Dungeons {
             return (name_parts, affinity, legendary);
         } else {
             let base_seed = random(seed.left_shift(16), 0, 38);
+
             if unique_seed <= 300 {
                 // Person's Name + Base Land
                 let people_seed = random(seed.left_shift(23), 0, 12);
-                name_parts.append(self.PEOPLE.read(people_seed.into()));
+                name_parts.append(self.PEOPLE.read(people_seed));
                 name_parts.append(' ');
-                name_parts.append(self.LAND.read(base_seed.into()));
+                name_parts.append(self.LAND.read(base_seed));
             } else if unique_seed <= 1800 {
                 // Prefix + Base Land + Suffix
                 let suffixs_random = random(seed.left_shift(27), 0, 59);
                 let affinity = self.SUFFIXES.read(suffixs_random);
                 let prefix_seed = random(seed.left_shift(42), 0, 29);
 
-                name_parts.append(self.PREFIX.read(prefix_seed.into()));
+                name_parts.append(self.PREFIX.read(prefix_seed));
                 name_parts.append(' ');
-                name_parts.append(self.LAND.read(base_seed.into()));
+                name_parts.append(self.LAND.read(base_seed));
                 name_parts.append(' of ');
                 name_parts.append(affinity);
             } else if unique_seed <= 4000 {
                 // Base Land + Suffix
                 let suffixs_random = random(seed.left_shift(51), 0, 59);
 
-                name_parts.append(self.LAND.read(base_seed.into()));
+                name_parts.append(self.LAND.read(base_seed));
                 name_parts.append(' of ');
                 name_parts.append(self.SUFFIXES.read(suffixs_random));
             } else if unique_seed <= 6500 {
                 // Prefix + Base Land
-                let affinity = self.LAND.read(base_seed.into());
+                let affinity = self.LAND.read(base_seed);
                 let prefix_seed = random(seed.left_shift(59), 0, 29);
 
-                name_parts.append(self.PREFIX.read(prefix_seed.into()));
+                name_parts.append(self.PREFIX.read(prefix_seed));
                 name_parts.append(' ');
                 name_parts.append(affinity);
             } else {
                 // Base Land
-                name_parts.append(self.LAND.read(base_seed.into()));
+                name_parts.append(self.LAND.read(base_seed));
             }
         };
         return (name_parts, affinity, legendary);
     }
-
 
     // --------------------------------------------- Render --------------------------------------------
 
@@ -318,7 +341,7 @@ mod Dungeons {
         }
     }
 
-    fn draw(self: @ContractState, dungeon: Dungeon) -> Array<felt252> {
+    fn draw(self: @ContractState, dungeon: DungeonSerde) -> Array<felt252> {
         let x = dungeon.entities.x;
         let y = dungeon.entities.y;
         let entity_data = dungeon.entities.entity_data;
@@ -339,28 +362,26 @@ mod Dungeons {
         parts.append(self.colors.read(dungeon.environment * 4));
         parts.append('" />');
 
-        parts = draw_name_plate(parts, dungeon.dungeon_name.span());
-
+        parts = draw_name_plate(parts, dungeon.dungeon_name);
         let (start, pixel) = get_width(dungeon.size);
-
         let mut helper: RenderHelper = RenderHelper {
             pixel: pixel,
             start: start,
-            layout: dungeon.layout.span(),
+            layout: dungeon.layout,
             parts: array![].span(),
             counter: 0,
             num_rects: 0,
             last_start: 0
         };
 
-        parts = append(parts, (chunk_dungeon(self, dungeon.clone(), ref helper)).span());
+        parts = append(parts, (chunk_dungeon(self, dungeon, ref helper)).span());
         parts = append(parts, draw_entities(self, x, y, entity_data, dungeon, helper).span());
         parts.append('</svg>');
 
         parts
     }
 
-    fn arr_to_dict(origin: Array<u256>) -> Felt252Dict<Nullable<u256>> {
+    fn arr_to_dict(origin: Span<u256>) -> Felt252Dict<Nullable<u256>> {
         let mut result: Felt252Dict<Nullable<u256>> = Default::default();
 
         let limit = origin.len();
@@ -378,7 +399,7 @@ mod Dungeons {
     }
 
     fn chunk_dungeon(
-        self: @ContractState, dungeon: Dungeon, ref helper: RenderHelper
+        self: @ContractState, dungeon: DungeonSerde, ref helper: RenderHelper
     ) -> Array<felt252> {
         let mut layout: Felt252Dict<Nullable<u256>> = arr_to_dict(dungeon.layout);
         let mut parts: Array<felt252> = ArrayTrait::new();
@@ -428,7 +449,8 @@ mod Dungeons {
     }
 
     fn draw_name_plate(mut parts: Array<felt252>, name: Span<felt252>) -> Array<felt252> {
-        let mut name_length = count_length(parts.span());
+        let mut name_length = count_length(name);
+
         let mut font_size = 0;
         let mut multiplier = 0;
         if name_length <= 25 {
@@ -442,18 +464,18 @@ mod Dungeons {
 
         parts.append('<g transform="scale ');
         parts.append('(5 5)"><rect x="');
-        parts = append_number_ascii(parts, ((100 - ((name_length + 3) * multiplier)) / 2).into());
+        parts = append_number_ascii(parts, (100 - ((name_length + 3) * multiplier)) / 2);
         parts.append('" y="-1" width="');
-        parts = append_number_ascii(parts, ((name_length + 3) * multiplier).into());
+        parts = append_number_ascii(parts, (name_length + 3) * multiplier);
         parts.append('" height="9" stroke-width="0.3"');
         parts.append(' stroke="black" fill="#FFA800"');
         parts.append(' />');
 
         parts.append('<text x="50" y="5.5" width="');
-        parts = append_number_ascii(parts, (name_length * 3).into());
+        parts = append_number_ascii(parts, name_length * 3);
         parts.append('" font-family="monospace" ');
         parts.append('font-size="');
-        parts = append_number_ascii(parts, font_size.into());
+        parts = append_number_ascii(parts, font_size);
         parts.append('" text-anchor="middle">');
         parts = append(parts, name);
         parts.append('</text></g>');
@@ -467,14 +489,14 @@ mod Dungeons {
         x: Span<u8>,
         y: Span<u8>,
         entityData: Span<u8>,
-        dungeon: Dungeon,
+        dungeon: DungeonSerde,
         helper: RenderHelper
     ) -> Array<felt252> {
         let mut parts: Array<felt252> = ArrayTrait::new();
 
-        let mut i: usize = 1;
+        let mut i: usize = 0;
         loop {
-            if i > entityData.len() {
+            if i == entityData.len() {
                 break;
             }
             let x: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
@@ -514,7 +536,7 @@ mod Dungeons {
         (start, pixel)
     }
 
-    fn count_length(parts: Span<felt252>) -> u128 {
+    fn count_length(parts: Span<felt252>) -> u256 {
         let limit = parts.len();
         let mut length = 0;
         let mut count = 0;
@@ -522,31 +544,28 @@ mod Dungeons {
             if count == limit {
                 break;
             }
-
             let mut part: u256 = (*parts[count]).into();
             loop {
                 if part == 0 {
                     break;
                 }
-
-                part = part / 256;
+                part = part.right_shift(8);
                 length += 1;
             };
-
             count += 1;
         };
         length
     }
 
-    fn append(mut parts: Array<felt252>, mut name: Span<felt252>) -> Array<felt252> {
-        let pop = name.pop_front();
+    fn append(mut parts: Array<felt252>, mut to_add: Span<felt252>) -> Array<felt252> {
+        let pop = to_add.pop_front();
 
         if (match pop {
             Option::Some(v) => true,
             Option::None => false
         }) {
             parts.append(*pop.unwrap());
-            append(parts, name)
+            append(parts, to_add)
         } else {
             parts
         }

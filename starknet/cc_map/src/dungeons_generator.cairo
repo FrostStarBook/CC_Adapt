@@ -301,6 +301,7 @@ fn generate_entities(
     let mut settings: Settings = build_settings(seed, size);
 
     if random_with_counter_plus(ref settings, 0, 100) > 30 {
+
         let (mut rooms, mut floor) = generate_rooms(ref settings);
 
         let mut hallways = generate_hallways(ref settings, @rooms);

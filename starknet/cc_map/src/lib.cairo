@@ -1,5 +1,6 @@
 mod dungeons_generator;
 mod utils;
+mod test;
 
 
 #[starknet::contract]
@@ -186,52 +187,52 @@ mod Dungeons {
         }
     }
 
-    #[external(v0)]
-    fn mint(ref self: ContractState) {
-        assert(self.last_mint.read() < 9000, 'Token sold out');
-        assert(!self.restricted.read(), 'Dungeon is restricted');
+    // #[external(v0)]
+    // fn mint(ref self: ContractState) {
+    //     assert(self.last_mint.read() < 9000, 'Token sold out');
+    //     assert(!self.restricted.read(), 'Dungeon is restricted');
 
-        let token_id = self.last_mint.read() + 1;
-        self.last_mint.write(token_id);
-        self.seeds.write(token_id, get_seed(token_id));
+    //     let token_id = self.last_mint.read() + 1;
+    //     self.last_mint.write(token_id);
+    //     self.seeds.write(token_id, get_seed(token_id));
 
-        let mut state = ERC721::unsafe_new_contract_state();
-        ERC721::InternalImpl::_mint(ref state, get_caller_address(), token_id);
-        self.emit(Minted { account: get_caller_address(), token_id });
-    }
+    //     let mut state = ERC721::unsafe_new_contract_state();
+    //     ERC721::InternalImpl::_mint(ref state, get_caller_address(), token_id);
+    //     self.emit(Minted { account: get_caller_address(), token_id });
+    // }
 
-    #[external(v0)]
-    fn get_seeds(self: @ContractState, token_id: u256) -> u256 {
-        self.seeds.read(token_id)
-    }
+    // #[external(v0)]
+    // fn get_seeds(self: @ContractState, token_id: u256) -> u256 {
+    //     self.seeds.read(token_id)
+    // }
 
-    #[external(v0)]
-    fn get_svg(self: @ContractState, token_id: u256) -> Array<felt252> {
-        draw(self, generate_dungeon(self, token_id))
-    }
+    // #[external(v0)]
+    // fn get_svg(self: @ContractState, token_id: u256) -> Array<felt252> {
+    //     draw(self, generate_dungeon(self, token_id))
+    // }
 
-    #[external(v0)]
-    fn generate_dungeon(self: @ContractState, token_id: u256) -> DungeonSerde {
-        let seed: u256 = self.seeds.read(token_id);
-        let size: u256 = get_size(seed);
+    // #[external(v0)]
+    // fn generate_dungeon(self: @ContractState, token_id: u256) -> DungeonSerde {
+    //     let seed: u256 = self.seeds.read(token_id);
+    //     let size: u256 = get_size(seed);
 
-        let (x_array, y_array, t_array) = generator::get_entities(seed, size);
-        let (mut layout, structure) = get_layout(self, seed, size);
-        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
+    //     let (x_array, y_array, t_array) = generator::get_entities(seed, size);
+    //     let (mut layout, structure) = get_layout(self, seed, size);
+    //     let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 
-        DungeonSerde {
-            size: size.try_into().unwrap(),
-            environment: get_environment(token_id),
-            structure: structure,
-            legendary: legendary,
-            layout: layout.span(),
-            entities: EntityData {
-                x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
-            },
-            affinity: affinity,
-            dungeon_name: dungeon_name.span()
-        }
-    }
+    //     DungeonSerde {
+    //         size: size.try_into().unwrap(),
+    //         environment: get_environment(token_id),
+    //         structure: structure,
+    //         legendary: legendary,
+    //         layout: layout.span(),
+    //         entities: EntityData {
+    //             x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
+    //         },
+    //         affinity: affinity,
+    //         dungeon_name: dungeon_name.span()
+    //     }
+    // }
 
     fn get_entities(self: @ContractState, token_id: u256) -> EntityData {
         // 'get_entities'.print();

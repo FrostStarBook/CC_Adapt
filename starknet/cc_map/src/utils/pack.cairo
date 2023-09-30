@@ -1,5 +1,13 @@
 use debug::PrintTrait;
 
+#[test]
+#[available_gas(3000000)]
+fn test() {
+    let mut pack: Pack = Pack { first: 0, second: 0, third: 0 };
+    pack.set_bit(66);
+    assert(pack.get_bit(66), 'set bit');
+}
+
 #[derive(Copy, Drop, Serde)]
 struct Pack {
     first: felt252,
@@ -65,24 +73,6 @@ impl PackImpl of PachTrait {
 }
 
 
-#[test]
-#[available_gas(3000000)]
-fn test() {
-    let pack: Pack = Pack { first: 0, second: 0, third: 0 };
-    pack.first.print();
-}
-
-#[test]
-#[available_gas(3000000)]
-fn test_gas1() {
-    let pack: Pack = Pack { first: 0, second: 0, third: 0 };
-}
-
-#[test]
-#[available_gas(3000000)]
-fn test_gas2() {
-    let pack: Felt252Dict<u128> = Default::default();
-}
 fn get_mask(position: u128) -> u256 {
     if position <= 126 {
         if position <= 63 {

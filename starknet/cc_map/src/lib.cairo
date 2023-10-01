@@ -90,14 +90,14 @@ mod Dungeons {
     struct Minted {
         #[key]
         account: ContractAddress,
-        token_id: u256
+        token_id: u128
     }
 
     #[derive(Drop, starknet::Event)]
     struct Claimed {
         #[key]
         account: ContractAddress,
-        token_id: u256
+        token_id: u128
     }
 
     // ------------------------------------------- Storage -------------------------------------------
@@ -107,7 +107,7 @@ mod Dungeons {
         // -------------- dungeons ----------------
         // price: u256,
         // loot:ContractAddress,
-        seeds: LegacyMap::<u256, u256>,
+        seeds: LegacyMap::<u128, u256>,
         last_mint: u128,
         claimed: u128,
         restricted: bool,
@@ -128,45 +128,92 @@ mod Dungeons {
 
     // ------------------------------------------- Dungeon -------------------------------------------
 
-    use debug::PrintTrait;
-    #[test]
-    #[available_gas(300000000000000)]
-    fn testttt(ref self: ContractState) {
-        let mut arr: Array<felt252> = test_get_svg(
-            @self, 23606180097539405197311522145494409584274061256593011253731477000444122175919
-        );
-        let mut l = arr.len();
-        loop {
-            if l == 0 {
-                break;
-            }
-            arr.pop_front().unwrap().print();
-            l -= 1;
-        }
+    // use debug::PrintTrait;
+    // #[test]
+    // #[available_gas(300000000000000)]
+    // fn testttt(ref self: ContractState) {
+    //     let mut arr: Array<felt252> = test_get_svg(
+    //         @self, 23606180097539405197311522145494409584274061256593011253731477000444122175919
+    //     );
+    //     let mut l = arr.len();
+    //     loop {
+    //         if l == 0 {
+    //             break;
+    //         }
+    //         arr.pop_front().unwrap().print();
+    //         l -= 1;
+    //     }
+    // }
+
+    // #[external(v0)]
+    // fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
+    //     draw(self, test_generate_dungeon(self, seed))
+    // }
+
+    // #[external(v0)]
+    // fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
+    //     get_layout(self, seed, get_size(seed))
+    // }
+
+    // #[external(v0)]
+    // fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+    //     get_name(self, seed)
+    // }
+
+    // #[external(v0)]
+    // fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
+    //     generator::get_entities(seed, get_size(seed))
+    // }
+
+    // #[external(v0)]
+    // fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
+    //     let size = get_size(seed);
+
+    //     let (x_array, y_array, t_array) = generator::get_entities(seed, size);
+    //     let (mut layout, structure) = get_layout(self, seed, size);
+    //     let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
+
+    //     DungeonSerde {
+    //         size: size.try_into().unwrap(),
+    //         environment: get_environment(seed),
+    //         structure: structure,
+    //         legendary: legendary,
+    //         layout: layout,
+    //         entities: EntityData {
+    //             x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
+    //         },
+    //         affinity: affinity,
+    //         dungeon_name: dungeon_name.span()
+    //     }
+    // }
+
+    #[external(v0)]
+    fn mint(ref self: ContractState) {
+        assert(self.last_mint.read() < 9000, 'Token sold out');
+        // assert(!self.restricted.read(), 'Dungeon is restricted');
+
+        let token_id = self.last_mint.read() + 1;
+        self.last_mint.write(token_id);
+        self.seeds.write(token_id, get_seed(token_id));
+
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::InternalImpl::_mint(ref state, get_caller_address(), token_id.into());
+        self.emit(Minted { account: get_caller_address(), token_id });
     }
 
     #[external(v0)]
-    fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
-        draw(self, test_generate_dungeon(self, seed))
+    fn get_seeds(self: @ContractState, token_id: u128) -> u256 {
+        self.seeds.read(token_id)
     }
 
     #[external(v0)]
-    fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
-        get_layout(self, seed, get_size(seed))
+    fn get_svg(self: @ContractState, token_id: u128) -> Array<felt252> {
+        draw(self, generate_dungeon(self, token_id))
     }
 
     #[external(v0)]
-    fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
-        get_name(self, seed)
-    }
-
-    #[external(v0)]
-    fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
-        generator::get_entities(seed, get_size(seed))
-    }
-
-    #[external(v0)]
-    fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
+    fn generate_dungeon(self: @ContractState, token_id: u128) -> DungeonSerde {
+        let seed: u256 = self.seeds.read(token_id);
         let size = get_size(seed);
 
         let (x_array, y_array, t_array) = generator::get_entities(seed, size);
@@ -187,54 +234,7 @@ mod Dungeons {
         }
     }
 
-    // #[external(v0)]
-    // fn mint(ref self: ContractState) {
-    //     assert(self.last_mint.read() < 9000, 'Token sold out');
-    //     assert(!self.restricted.read(), 'Dungeon is restricted');
-
-    //     let token_id = self.last_mint.read() + 1;
-    //     self.last_mint.write(token_id);
-    //     self.seeds.write(token_id, get_seed(token_id));
-
-    //     let mut state = ERC721::unsafe_new_contract_state();
-    //     ERC721::InternalImpl::_mint(ref state, get_caller_address(), token_id);
-    //     self.emit(Minted { account: get_caller_address(), token_id });
-    // }
-
-    // #[external(v0)]
-    // fn get_seeds(self: @ContractState, token_id: u256) -> u256 {
-    //     self.seeds.read(token_id)
-    // }
-
-    // #[external(v0)]
-    // fn get_svg(self: @ContractState, token_id: u256) -> Array<felt252> {
-    //     draw(self, generate_dungeon(self, token_id))
-    // }
-
-    // #[external(v0)]
-    // fn generate_dungeon(self: @ContractState, token_id: u256) -> DungeonSerde {
-    //     let seed: u256 = self.seeds.read(token_id);
-    //     let size: u256 = get_size(seed);
-
-    //     let (x_array, y_array, t_array) = generator::get_entities(seed, size);
-    //     let (mut layout, structure) = get_layout(self, seed, size);
-    //     let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
-
-    //     DungeonSerde {
-    //         size: size.try_into().unwrap(),
-    //         environment: get_environment(token_id),
-    //         structure: structure,
-    //         legendary: legendary,
-    //         layout: layout.span(),
-    //         entities: EntityData {
-    //             x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
-    //         },
-    //         affinity: affinity,
-    //         dungeon_name: dungeon_name.span()
-    //     }
-    // }
-
-    fn get_entities(self: @ContractState, token_id: u256) -> EntityData {
+    fn get_entities(self: @ContractState, token_id: u128) -> EntityData {
         // 'get_entities'.print();
         // is_valid(self, token_id);
 
@@ -261,10 +261,10 @@ mod Dungeons {
     // --------------------------------------------- Seeder --------------------------------------------
 
     // for testnet only
-    fn get_seed(token_id: u256) -> u256 {
+    fn get_seed(token_id: u128) -> u256 {
         let block_time = starknet::get_block_timestamp();
         let b_u256_time: u256 = block_time.into();
-        let input = array![b_u256_time, token_id];
+        let input = array![b_u256_time, token_id.into()];
         let seed = keccak::keccak_u256s_be_inputs(input.span());
         seed
     }

@@ -47,11 +47,11 @@ impl PackImpl of PackTrait {
     fn get_bit(ref self: Pack, position: u128) -> bool {
         assert(position < 625, 'invalid position');
         if position < 252 {
-            self.first.into() | get_pow(position) == self.first.into()
+            self.first.into() | get_pow(251 - position) == self.first.into()
         } else if position < 504 {
-            self.second.into() | get_pow(position) == self.second.into()
+            self.second.into() | get_pow(251 - position) == self.second.into()
         } else {
-            self.third.into() | get_pow(position) == self.third.into()
+            self.third.into() | get_pow(251 - position) == self.third.into()
         }
     }
 
@@ -70,10 +70,10 @@ impl PackImpl of PackTrait {
         let mut result: u256 = self.first.into() & ~other.first.into();
         self.first = result.try_into().expect('bit overflow');
 
-        result = self.second.into() | ~other.second.into();
+        result = self.second.into() & ~other.second.into();
         self.second = result.try_into().expect('bit overflow');
 
-        result = self.third.into() | ~other.third.into();
+        result = self.third.into() & ~other.third.into();
         self.third = result.try_into().expect('bit overflow');
     }
 
@@ -89,6 +89,8 @@ impl PackImpl of PackTrait {
 // }
 
 }
+
+// const range_max: u256 = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
 fn count_loop(mut value: u256, mut count: u128) -> u128 {
     if value != 0 {

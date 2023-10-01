@@ -530,25 +530,23 @@ fn square_root(origin: u128) -> u128 {
 // ------------------------------------------- Test -------------------------------------------
 
 // Libfunc print is not allowed in the libfuncs list
+use debug::PrintTrait;
 
 #[test]
 #[available_gas(30000000)]
 fn test_set_bit() {
     let mut map: Pack = PackTrait::new();
-    // for test only, it won't be used this way
     map.first = 2;
     map.set_bit(20);
-    assert(map.first == 1048578, 'set bit');
+    assert(map.first == 0x8000000000000000000000000000000000000000000000000000000002, 'set bit');
     assert(!map.get_bit(19), 'get bit of index 19');
     assert(map.get_bit(20), 'get bit of index 20');
     assert(map.count_bit() == 2, 'count bit');
 
     let mut another_map: Pack = PackTrait::new();
-    // for test only, it won't be used this way
     another_map.first = 3;
     another_map.set_bit(30);
     assert(another_map.count_bit() == 3, 'count bit');
-
     map.add_bit(another_map);
     assert(map.count_bit() == 4, 'add bit');
     map.subtract_bit(another_map);
@@ -562,7 +560,6 @@ fn test_sqr() {
     assert(square_root(24) == 4, 'compute square root of 24');
 }
 
-use debug::PrintTrait;
 #[test]
 #[ignore]
 #[available_gas(300000000000000)]

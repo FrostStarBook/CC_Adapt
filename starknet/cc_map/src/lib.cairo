@@ -111,8 +111,6 @@ mod Dungeons {
         last_mint: u128,
         claimed: u128,
         restricted: bool,
-        // for test
-        token_id_owner: LegacyMap::<ContractAddress, Array<u128>>,
         // --------------- seeder ----------------
         PREFIX: LegacyMap::<u128, felt252>,
         LAND: LegacyMap::<u128, felt252>,
@@ -142,7 +140,7 @@ mod Dungeons {
             if l == 0 {
                 break;
             }
-            arr.pop_front().unwrap().print();
+            // arr.pop_front().unwrap().print();
             l -= 1;
         }
     }
@@ -190,7 +188,7 @@ mod Dungeons {
     }
 
     #[external(v0)]
-    fn mint(ref self: ContractState) {
+    fn mint(ref self: ContractState) -> u128 {
         assert(self.last_mint.read() < 9000, 'Token sold out');
         // assert(!self.restricted.read(), 'Dungeon is restricted');
 
@@ -198,19 +196,13 @@ mod Dungeons {
         let token_id = self.last_mint.read() + 1;
         self.last_mint.write(token_id);
         self.seeds.write(token_id, get_seed(token_id));
-        let mut arr = self.token_id_owner.read(user);
-        arr.append(token_id);
-        self.token_id_owner.write(user, arr);
 
         let mut state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::_mint(ref state, user, token_id.into());
         self.emit(Minted { account: user, token_id });
+        token_id
     }
 
-    #[external(v0)]
-    fn get_token_id(self: @ContractState) -> Array<u128> {
-        self.token_id_owner.read(get_caller_address())
-    }
 
     #[external(v0)]
     fn get_seeds(self: @ContractState, token_id: u128) -> u256 {

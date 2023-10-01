@@ -99,7 +99,7 @@ fn p<T, impl TPrint: PrintTrait<T>>(t: T) {
 use debug::PrintTrait;
 
 #[test]
-#[ignore]
+// #[ignore]
 #[available_gas(3000000)]
 fn test() {
     let mut pack: Pack = Pack { first: 0, second: 0, third: 0 };

@@ -27,15 +27,18 @@ impl PackImpl of PackTrait {
     fn set_bit(ref self: Pack, position: u128) {
         assert(position < 625, 'invalid position');
         if position < 252 {
-            self.first = (self.first.into() | get_pow(position)).try_into().expect('bit overflow');
+            self
+                .first = (self.first.into() | get_pow(251 - position))
+                .try_into()
+                .expect('bit overflow');
         } else if position < 504 {
             self
-                .second = (self.second.into() | get_pow(position % 252))
+                .second = (self.second.into() | get_pow(251 - position % 252))
                 .try_into()
                 .expect('bit overflow');
         } else {
             self
-                .third = (self.third.into() | get_pow(position % 252))
+                .third = (self.third.into() | get_pow(251 - position % 252))
                 .try_into()
                 .expect('bit overflow');
         }
@@ -75,12 +78,25 @@ impl PackImpl of PackTrait {
     }
 
     fn count_bit(ref self: Pack) -> u128 {
-        // todo
-        0
+        let mut count: u128 = 0;
+        count_loop(self.first.into(), count)
+            + count_loop(self.second.into(), count)
+            + count_loop(self.third.into(), count)
     }
 //
 // fn delete_bit(ref sel: Pack, mut position: u128) {
 //     assert(position < 625, 'invalid position');
 // }
+
+}
+
+fn count_loop(mut value: u256, mut count: u128) -> u128 {
+    if value != 0 {
+        value = value & (value - 1);
+        count += 1;
+        count_loop(value, count)
+    } else {
+        count
+    }
 }
 

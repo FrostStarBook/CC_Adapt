@@ -311,6 +311,7 @@ mod Dungeons {
             if unique_seed <= 300 {
                 // Person's Name + Base Land
                 let people_seed = random(seed.left_shift(23), 0, 12);
+
                 name_parts.append(self.PEOPLE.read(people_seed));
                 name_parts.append(' ');
                 name_parts.append(self.LAND.read(base_seed));

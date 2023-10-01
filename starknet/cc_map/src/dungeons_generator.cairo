@@ -526,137 +526,129 @@ fn square_root(origin: u128) -> u128 {
 
     return x;
 }
+
 // ------------------------------------------- Test -------------------------------------------
 
 // Libfunc print is not allowed in the libfuncs list
 
-// #[test]
-// #[ignore]
-// #[available_gas(30000000)]
-// fn testset() {
-//     let mut map: Pack = Default::default();
-//     map.set_bit(341);
-//     'map(1)'.print();
-//     map.select(1).print();
-// }
+#[test]
+#[available_gas(30000000)]
+fn test_set_bit() {
+    let mut map: Pack = PackTrait::new();
+    // for test only, it won't be used this way
+    map.first = 2;
+    map.set_bit(20);
+    assert(map.first == 1048578, 'set bit');
+    assert(!map.get_bit(19), 'get bit of index 19');
+    assert(map.get_bit(20), 'get bit of index 20');
+    assert(map.count_bit() == 2, 'count bit');
 
-// #[test]
-// #[ignore]
-// #[available_gas(30000000)]
-// fn test_set_bit() {
-//     let mut map: Pack = Default::default();
-//     let key = 0;
-//     // for test only, it won't be used this way
-//     map.update(key, 2);
-//     map.set_bit(20);
-//     assert(map.select(key) == 1048578, 'set bit');
-//     assert(map.get_bit(19) == 0, 'get bit of index 19');
-//     assert(map.get_bit(20) == 1, 'get bit of index 20');
-//     assert(map.count_bit(1) == 2, 'count bit');
+    let mut another_map: Pack = PackTrait::new();
+    // for test only, it won't be used this way
+    another_map.first = 3;
+    another_map.set_bit(30);
+    assert(another_map.count_bit() == 3, 'count bit');
 
-//     let mut another_map: Pack = Default::default();
-//     // for test only, it won't be used this way
-//     another_map.update(key, 3);
-//     another_map.set_bit(30);
-//     assert(another_map.count_bit(1) == 3, 'count bit');
+    map.add_bit(another_map);
+    assert(map.count_bit() == 4, 'add bit');
+    map.subtract_bit(another_map);
+    assert(map.count_bit() == 1, 'subtract bit');
+}
 
-//     map.add_bit(ref another_map, 1);
-//     assert(map.count_bit(1) == 4, 'add bit');
-//     map.subtract_bit(ref another_map, 1);
-//     assert(map.count_bit(1) == 1, 'subtract bit');
-// }
+#[test]
+#[available_gas(30000000)]
+fn test_sqr() {
+    assert(square_root(17) == 4, 'compute square root of 17');
+    assert(square_root(24) == 4, 'compute square root of 24');
+}
 
-// #[test]
-// #[available_gas(30000000)]
-// fn test_sqr() {
-//     assert(square_root(17) == 4, 'compute square root of 17');
-//     assert(square_root(24) == 4, 'compute square root of 24');
-// }
+use debug::PrintTrait;
+#[test]
+#[ignore]
+#[available_gas(300000000000000)]
+fn test_generate_room() {
+    {}
+    // tokenId 5678 cavern type
+    let seed = 54726856408304506636278424762823059598933394071647911965527120692794348915138;
+    let size = 20;
 
-// #[test]
-// #[ignore]
-// #[available_gas(300000000000000)]
-// fn test_generate_room() {
-//     {}
-//     // tokenId 5678 cavern type
-//     let seed: u256 = 54726856408304506636278424762823059598933394071647911965527120692794348915138;
-//     let size: u256 = 20;
+    let (mut map, mut structure) = get_layout(seed, size);
+    // print_map(ref map, structure, size);
+    assert(
+        structure == 1
+            && map.first == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c1462c
+            && map.second == 0x1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
+        'cavern error'
+    );
+    // tokenId 5678 entities
+    let (x_array, y_array, t_array) = get_entities(seed, size);
 
-//     let (mut map, mut structure) = get_layout(seed, size);
-//     // print_map(ref map, structure, size);
-//     assert(
-//         structure == 1
-//             && map.select(0) == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c1462
-//             && map.select(1) == 0xc1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
-//         'cavern error'
-//     );
-//     // tokenId 5678 entities
-//     let (x_array, y_array, t_array) = get_entities(seed, size);
+    // print_array(@x_array, @y_array, @t_array);
 
-//     // print_array(@x_array, @y_array, @t_array);
+    assert(*x_array.at(0) == 0x10, 'x error');
+    assert(*y_array.at(0) == 0x12, 'y error');
+    assert(*t_array.at(0) == 0x1, 't error');
 
-//     assert(*x_array.at(0) == 0x10, 'x error');
-//     assert(*y_array.at(0) == 0x12, 'y error');
-//     assert(*t_array.at(0) == 0x1, 't error');
+    {}
+    // tokenId 6666 room type
+    let seed: u256 = 6335337818598560499429733180295617724328926230334923097623654911070136911834;
+    let size = 17;
 
-//     {}
-//     // tokenId 6666 room type
-//     let seed: u256 = 6335337818598560499429733180295617724328926230334923097623654911070136911834;
-//     let size: u256 = 17;
+    let (mut map, mut structure) = get_layout(seed, size);
+    // print_map(ref map, structure, size);
+    assert(
+        structure == 0
+            && map.first == 0x18000c0000003fbc1ffe03ef01f000ffc00000
+            && map.second == 0x0,
+        'room error'
+    );
+}
 
-//     let (mut map, mut structure) = get_layout(seed, size);
-//     // print_map(ref map, structure, size);
-//     assert(
-//         structure == 0
-//             && map.select(0) == 0x18000c0000003fbc1ffe03ef01f000ffc00000
-//             && map.select(1) == 0x0,
-//         'room error'
-//     );
-// }
+fn print_map(ref map: Pack, structure: u256, size: u256) {
+    '--------layout display--------'.print();
+    'structure'.print();
+    let structure: u128 = structure.try_into().unwrap();
+    structure.print();
 
-// fn print_map(ref map: Pack, structure: u256, size: u256) {
-//     '--------layout display--------'.print();
-//     'structure'.print();
-//     let structure: u128 = structure.try_into().unwrap();
-//     structure.print();
-//     let length = size * size / 256;
-//     let mut count: u128 = 0;
-//     loop {
-//         if length + 1 == count.into() {
-//             break;
-//         }
+    let mut value = map.first;
+    'map index'.print();
+    'first'.print();
+    'map value'.print();
+    value.print();
 
-//         let value: u256 = map.select(count.into());
-//         'map index'.print();
-//         count.print();
-//         'map value'.print();
-//         value.print();
+    value = map.second;
+    'map index'.print();
+    'second'.print();
+    'map value'.print();
+    value.print();
 
-//         count += 1;
-//     }
-// }
+    value = map.third;
+    'map index'.print();
+    'third'.print();
+    'map value'.print();
+    value.print();
+}
 
-// fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u256>) {
-//     '--------entities display-------'.print();
-//     let mut limit = x_array.len();
-//     loop {
-//         if limit == 0 {
-//             break;
-//         }
+fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u256>) {
+    '--------entities display-------'.print();
+    let mut limit = x_array.len();
+    loop {
+        if limit == 0 {
+            break;
+        }
 
-//         let x: u128 = (*x_array.at(limit - 1)).try_into().expect('out of range');
-//         let y: u128 = (*y_array.at(limit - 1)).try_into().expect('out of range');
-//         let t: u128 = (*t_array.at(limit - 1)).try_into().expect('out of range');
-//         '-- group --'.print();
-//         'x'.print();
-//         x.print();
-//         'y'.print();
-//         y.print();
-//         't'.print();
-//         t.print();
+        let x: u128 = (*x_array.at(limit - 1)).try_into().expect('out of range');
+        let y: u128 = (*y_array.at(limit - 1)).try_into().expect('out of range');
+        let t: u128 = (*t_array.at(limit - 1)).try_into().expect('out of range');
+        '-- group --'.print();
+        'x'.print();
+        x.print();
+        'y'.print();
+        y.print();
+        't'.print();
+        t.print();
 
-//         limit -= 1;
-//     };
-// }
-
+        limit -= 1;
+    };
+}
 

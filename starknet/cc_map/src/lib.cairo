@@ -128,22 +128,22 @@ mod Dungeons {
 
     // ------------------------------------------- Dungeon -------------------------------------------
 
-    // use debug::PrintTrait;
-    // #[test]
-    // #[available_gas(300000000000000)]
-    // fn testttt(ref self: ContractState) {
-    //     let dungeon = generate_dungeon(@self, 3465);
-
-    //     let mut arr: Array<felt252> = draw(@self, dungeon);
-    //     let mut l = arr.len();
-    //     loop {
-    //         if l == 0 {
-    //             break;
-    //         }
-    //         arr.pop_front().unwrap().print();
-    //         l -= 1;
-    //     }
-    // }
+    use debug::PrintTrait;
+    #[test]
+    #[available_gas(300000000000000)]
+    fn testttt(ref self: ContractState) {
+        let mut arr: Array<felt252> = test_get_svg(
+            @self, 23606180097539405197311522145494409584274061256593011253731477000444122175919
+        );
+        let mut l = arr.len();
+        loop {
+            if l == 0 {
+                break;
+            }
+            arr.pop_front().unwrap().print();
+            l -= 1;
+        }
+    }
 
     #[external(v0)]
     fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
@@ -431,7 +431,7 @@ mod Dungeons {
 
     //     result
     // }
-
+    use generator::p;
     fn chunk_dungeon(
         self: @ContractState, dungeon: DungeonSerde, ref helper: RenderHelper
     ) -> Array<felt252> {
@@ -473,14 +473,30 @@ mod Dungeons {
                     helper.last_start = helper.counter;
                 }
 
+                helper.counter += 1;
                 x += 1;
             };
 
+            if !layout.get_bit(helper.counter - 1) {
+                helper.num_rects += 1;
+                row_parts =
+                    draw_tile(
+                        row_parts,
+                        helper.start + (helper.last_start % dungeon.size.into()) * helper.pixel,
+                        helper.start + (helper.last_start / dungeon.size.into()) * helper.pixel,
+                        (helper.counter - helper.last_start) * helper.pixel,
+                        helper.pixel,
+                        self.colors.read(dungeon.environment * 4 + 1)
+                    );
+            }
+
+            parts = append(parts, row_parts.span());
             y += 1;
         };
 
         parts
     }
+
 
     fn draw_name_plate(mut parts: Array<felt252>, name: Span<felt252>) -> Array<felt252> {
         let mut name_length = count_length(name);
@@ -545,9 +561,8 @@ mod Dungeons {
     }
 
     fn draw_tile(
-        row: Array<felt252>, x: u128, y: u128, width: u128, pixel: u128, color: felt252
+        mut tile: Array<felt252>, x: u128, y: u128, width: u128, pixel: u128, color: felt252
     ) -> Array<felt252> {
-        let mut tile: Array<felt252> = row;
         tile.append('<rect x="');
         tile = append_number_ascii(tile, x);
         tile.append('" y="');

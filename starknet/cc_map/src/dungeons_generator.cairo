@@ -48,8 +48,7 @@ fn get_layout(seed: u256, size: u128) -> (Pack, u8) {
     if random_shift_counter_plus(ref settings, 0, 100) > 30 {
         let (mut rooms, mut floor) = generate_rooms(ref settings);
         let mut hallways = generate_hallways(ref settings, @rooms);
-        // print_map(floor, 0);
-        print_map(hallways, 0);
+
         floor.add_bit(hallways);
         (floor, structure)
     } else {

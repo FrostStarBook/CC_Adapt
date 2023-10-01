@@ -1,15 +1,5 @@
 use super::pow::get_pow;
 
-use debug::PrintTrait;
-
-#[test]
-#[ignore]
-#[available_gas(3000000)]
-fn test() {
-    let mut pack: Pack = Pack { first: 0, second: 0, third: 0 };
-    pack.set_bit(66);
-    assert(pack.get_bit(66), 'set bit');
-}
 
 #[derive(Copy, Drop, Serde)]
 struct Pack {
@@ -49,9 +39,9 @@ impl PackImpl of PackTrait {
         if position < 252 {
             self.first.into() | get_pow(251 - position) == self.first.into()
         } else if position < 504 {
-            self.second.into() | get_pow(251 - position) == self.second.into()
+            self.second.into() | get_pow(251 - position % 252) == self.second.into()
         } else {
-            self.third.into() | get_pow(251 - position) == self.third.into()
+            self.third.into() | get_pow(251 - position % 252) == self.third.into()
         }
     }
 
@@ -100,5 +90,20 @@ fn count_loop(mut value: u256, mut count: u128) -> u128 {
     } else {
         count
     }
+}
+
+use debug::PrintTrait;
+
+#[test]
+#[ignore]
+#[available_gas(3000000)]
+fn test() {
+    let mut pack: Pack = Pack { first: 0, second: 0, third: 0 };
+    pack.set_bit(66);
+    assert(pack.get_bit(66), 'set bit');
+}
+
+fn p<T, impl TPrint: PrintTrait<T>>(t: T) {
+    t.print();
 }
 

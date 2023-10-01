@@ -48,6 +48,8 @@ fn get_layout(seed: u256, size: u128) -> (Pack, u8) {
     if random_shift_counter_plus(ref settings, 0, 100) > 30 {
         let (mut rooms, mut floor) = generate_rooms(ref settings);
         let mut hallways = generate_hallways(ref settings, @rooms);
+        // print_map(floor, 0);
+        print_map(hallways, 0);
         floor.add_bit(hallways);
         (floor, structure)
     } else {
@@ -172,19 +174,18 @@ fn generate_hallways(ref settings: Settings, rooms: @Array<Room>) -> Pack {
 
             let mut current_x = *rooms_span.at(i).x + (*rooms_span.at(i).width / 2);
             let mut current_y = *rooms_span.at(i).y + (*rooms_span.at(i).height / 2);
-
             if current_x == previous_x {
                 connect_halls_vertical(
-                    ref hallways, current_x, previous_x, current_y, settings.size
+                    ref hallways, current_y, previous_y, previous_x, settings.size
                 );
             } else if current_y == previous_y {
                 connect_halls_horizontal(
-                    ref hallways, current_x, current_y, previous_y, settings.size
+                    ref hallways, current_x, previous_x, previous_y, settings.size
                 );
             } else {
                 if random_with_counter_plus(ref settings, 1, 2) == 2 {
                     connect_halls_horizontal(
-                        ref hallways, current_x, previous_x, current_y, settings.size
+                        ref hallways, current_x, previous_x, previous_y, settings.size
                     );
                     connect_halls_vertical(
                         ref hallways, previous_y, current_y, current_x, settings.size
@@ -219,7 +220,7 @@ fn generate_points(ref settings: Settings, ref map: Pack, probability: u128) -> 
         prob = 1;
     }
 
-    let mut counter = 0;
+    let mut counter: u128 = 0;
     let limit: u128 = settings.size * settings.size;
     loop {
         if counter == limit {
@@ -529,6 +530,10 @@ fn square_root(origin: u128) -> u128 {
 
 // ------------------------------------------- Test -------------------------------------------
 
+fn p<T, impl TPrint: PrintTrait<T>>(t: T) {
+    t.print();
+}
+
 // Libfunc print is not allowed in the libfuncs list
 use debug::PrintTrait;
 
@@ -561,7 +566,6 @@ fn test_sqr() {
 }
 
 #[test]
-#[ignore]
 #[available_gas(300000000000000)]
 fn test_generate_room() {
     {}
@@ -570,21 +574,22 @@ fn test_generate_room() {
     let size = 20;
 
     let (mut map, mut structure) = get_layout(seed, size);
-    // print_map(ref map, structure, size);
+    // print_map( map, structure);
     assert(
         structure == 1
-            && map.first == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c1462c
-            && map.second == 0x1442c1c4781c6781c6384c6185c31cbc13c0000000000000000000000000000,
+            && map.first == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c146
+            && map.second == 0x2c1442c1c4781c6781c6384c6185c31cbc13c00000000000000000000000000
+            && map.third == 0x00,
         'cavern error'
     );
+
     // tokenId 5678 entities
     let (x_array, y_array, t_array) = get_entities(seed, size);
 
     // print_array(@x_array, @y_array, @t_array);
-
-    assert(*x_array.at(0) == 0x10, 'x error');
-    assert(*y_array.at(0) == 0x12, 'y error');
-    assert(*t_array.at(0) == 0x1, 't error');
+    assert(*x_array.at(3) == 0x10, 'x error');
+    assert(*y_array.at(3) == 0x12, 'y error');
+    assert(*t_array.at(3) == 0x1, 't error');
 
     {}
     // tokenId 6666 room type
@@ -592,19 +597,19 @@ fn test_generate_room() {
     let size = 17;
 
     let (mut map, mut structure) = get_layout(seed, size);
-    // print_map(ref map, structure, size);
+    // print_map(map, structure);
     assert(
         structure == 0
-            && map.first == 0x18000c0000003fbc1ffe03ef01f000ffc00000
-            && map.second == 0x0,
+            && map.first == 0x0000000000000000000000000018000c0002003fbc1ffe03ef01f000f800000
+            && map.second == 0x0
+            && map.third == 0x0,
         'room error'
     );
 }
 
-fn print_map(ref map: Pack, structure: u256, size: u256) {
+fn print_map(map: Pack, structure: u8) {
     '--------layout display--------'.print();
     'structure'.print();
-    let structure: u128 = structure.try_into().unwrap();
     structure.print();
 
     let mut value = map.first;
@@ -626,18 +631,19 @@ fn print_map(ref map: Pack, structure: u256, size: u256) {
     value.print();
 }
 
-fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u256>) {
+fn print_array(x_array: @Array<u8>, y_array: @Array<u8>, t_array: @Array<u8>) {
     '--------entities display-------'.print();
-    let mut limit = x_array.len();
+    let mut limit = 0;
     loop {
-        if limit == 0 {
+        if limit == x_array.len() {
             break;
         }
 
-        let x: u128 = (*x_array.at(limit - 1)).try_into().expect('out of range');
-        let y: u128 = (*y_array.at(limit - 1)).try_into().expect('out of range');
-        let t: u128 = (*t_array.at(limit - 1)).try_into().expect('out of range');
+        let x = *x_array.at(limit);
+        let y = *y_array.at(limit);
+        let t = *t_array.at(limit);
         '-- group --'.print();
+        limit.print();
         'x'.print();
         x.print();
         'y'.print();
@@ -645,7 +651,7 @@ fn print_array(x_array: @Array<u256>, y_array: @Array<u256>, t_array: @Array<u25
         't'.print();
         t.print();
 
-        limit -= 1;
+        limit += 1;
     };
 }
 

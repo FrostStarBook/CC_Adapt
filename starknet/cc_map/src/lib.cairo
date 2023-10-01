@@ -209,7 +209,7 @@ mod Dungeons {
 
     #[external(v0)]
     fn get_token_id(self: @ContractState) -> Array<u128> {
-        self.last_mint.read()
+        self.token_id_owner.read(get_caller_address())
     }
 
     #[external(v0)]

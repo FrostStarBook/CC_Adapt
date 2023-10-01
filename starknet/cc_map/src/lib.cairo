@@ -12,7 +12,7 @@ mod Dungeons {
     use core::clone::Clone;
     use starknet::{ContractAddress, info::get_caller_address};
     use super::{
-        utils::{random::{random}, bit_operation::BitOperationTrait, map::MapTrait},
+        utils::{random::{random}, bit_operation::BitOperationTrait, pack::{PackTrait, Pack}},
         dungeons_generator as generator
     };
 
@@ -26,7 +26,7 @@ mod Dungeons {
         environment: u8,
         structure: u8,
         legendary: u8,
-        layout: Span<u256>,
+        layout: Pack,
         entities: EntityData,
         affinity: felt252,
         dungeon_name: Span<felt252>
@@ -38,7 +38,7 @@ mod Dungeons {
         environment: u8,
         structure: u8,
         legendary: u8,
-        layout: Array<u256>,
+        layout: Pack,
         entities: EntityData,
         affinity: felt252,
         dungeon_name: Array<felt252>
@@ -62,13 +62,13 @@ mod Dungeons {
     /// Helper variables when iterating through and drawing dungeon tiles
     #[derive(Drop)]
     struct RenderHelper {
-        pixel: u256,
-        start: u256,
-        layout: Span<u256>,
+        pixel: u128,
+        start: u128,
+        layout: Pack,
         parts: Span<felt252>,
-        counter: u256,
-        num_rects: u256,
-        last_start: u256,
+        counter: u128,
+        num_rects: u128,
+        last_start: u128,
     }
 
     #[derive(Copy, Drop)]
@@ -108,19 +108,19 @@ mod Dungeons {
         // price: u256,
         // loot:ContractAddress,
         seeds: LegacyMap::<u256, u256>,
-        last_mint: u256,
-        claimed: u256,
+        last_mint: u128,
+        claimed: u128,
         restricted: bool,
         // --------------- seeder ----------------
-        PREFIX: LegacyMap::<u256, felt252>,
-        LAND: LegacyMap::<u256, felt252>,
-        SUFFIXES: LegacyMap::<u256, felt252>,
-        UNIQUE: LegacyMap::<u256, felt252>,
-        PEOPLE: LegacyMap::<u256, felt252>,
+        PREFIX: LegacyMap::<u128, felt252>,
+        LAND: LegacyMap::<u128, felt252>,
+        SUFFIXES: LegacyMap::<u128, felt252>,
+        UNIQUE: LegacyMap::<u128, felt252>,
+        PEOPLE: LegacyMap::<u128, felt252>,
         // --------------- render ----------------
         // Array contains sets of 4 colors:
         // 0 = bg, 1 = wall, 2 = door, 3 = point
-        // To calculate, multiply environment (int 0-5) by 4 and add the above numbers.        
+        // To calculate, multiply environment (int 0-5) by 4 and add the above numbers.
         colors: LegacyMap::<u8, felt252>,
         // Names mapped to the above colors
         environmentName: LegacyMap::<u8, felt252>
@@ -151,7 +151,7 @@ mod Dungeons {
     }
 
     #[external(v0)]
-    fn test_get_layout(self: @ContractState, seed: u256) -> (Array<u256>, u8) {
+    fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
         get_layout(self, seed, get_size(seed))
     }
 
@@ -167,7 +167,7 @@ mod Dungeons {
 
     #[external(v0)]
     fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
-        let size: u256 = get_size(seed);
+        let size = get_size(seed);
 
         let (x_array, y_array, t_array) = generator::get_entities(seed, size);
         let (mut layout, structure) = get_layout(self, seed, size);
@@ -178,7 +178,7 @@ mod Dungeons {
             environment: get_environment(seed),
             structure: structure,
             legendary: legendary,
-            layout: layout.span(),
+            layout: layout,
             entities: EntityData {
                 x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
             },
@@ -244,24 +244,11 @@ mod Dungeons {
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
 
-    fn get_layout(self: @ContractState, seed: u256, size: u256) -> (Array<u256>, u8) {
+    fn get_layout(self: @ContractState, seed: u256, size: u128) -> (Pack, u8) {
         // 'get_layout'.print();
         // is_valid(self, token_id);
 
-        let (mut layout, structure) = generator::get_layout(seed, size);
-
-        let range = size * size / 256 + 1;
-        let mut result: Array<u256> = ArrayTrait::new();
-        let mut count = 0;
-        loop {
-            if count > range {
-                break;
-            }
-            result.append(layout.select(count));
-            count += 1;
-        };
-
-        (result, structure)
+        generator::get_layout(seed, size)
     }
 
     fn is_valid(self: @ContractState, token_id: u256) {
@@ -282,9 +269,8 @@ mod Dungeons {
         seed
     }
 
-    fn get_size(seed: u256) -> u256 {
-        let size = random(seed.left_shift(4), 8, 25);
-        size
+    fn get_size(seed: u256) -> u128 {
+        random(seed.left_shift(4), 8, 25)
     }
 
     fn get_environment(seed: u256) -> u8 {
@@ -364,7 +350,7 @@ mod Dungeons {
 
     // --------------------------------------------- Render --------------------------------------------
 
-    fn append_number_ascii(mut parts: Array<felt252>, mut num: u256) -> Array<felt252> {
+    fn append_number_ascii(mut parts: Array<felt252>, mut num: u128) -> Array<felt252> {
         let part: Array<felt252> = append_number(ArrayTrait::<felt252>::new(), num);
         let mut length = part.len();
         loop {
@@ -377,7 +363,7 @@ mod Dungeons {
         parts
     }
 
-    fn append_number(mut part: Array<felt252>, mut num: u256) -> Array<felt252> {
+    fn append_number(mut part: Array<felt252>, mut num: u128) -> Array<felt252> {
         if num != 0 {
             let temp: u8 = (num % 10).try_into().unwrap();
             part.append((temp + 48).into());
@@ -428,27 +414,27 @@ mod Dungeons {
         parts
     }
 
-    fn arr_to_dict(origin: Span<u256>) -> Felt252Dict<Nullable<u256>> {
-        let mut result: Felt252Dict<Nullable<u256>> = Default::default();
+    // fn arr_to_dict(origin: Span<u256>) -> Felt252Dict<Nullable<u256>> {
+    //     let mut result: Felt252Dict<Nullable<u256>> = Default::default();
 
-        let limit = origin.len();
-        let mut count = 0;
-        loop {
-            if count == limit {
-                break;
-            }
+    //     let limit = origin.len();
+    //     let mut count = 0;
+    //     loop {
+    //         if count == limit {
+    //             break;
+    //         }
 
-            result.update(count.into(), *origin[count]);
-            count += 1;
-        };
+    //         result.update(count.into(), *origin[count]);
+    //         count += 1;
+    //     };
 
-        result
-    }
+    //     result
+    // }
 
     fn chunk_dungeon(
         self: @ContractState, dungeon: DungeonSerde, ref helper: RenderHelper
     ) -> Array<felt252> {
-        let mut layout: Felt252Dict<Nullable<u256>> = arr_to_dict(dungeon.layout);
+        let mut layout = dungeon.layout;
         let mut parts: Array<felt252> = ArrayTrait::new();
 
         let mut y = 0;
@@ -466,9 +452,9 @@ mod Dungeons {
                     break;
                 }
 
-                if layout.get_bit(helper.counter) == 1
+                if layout.get_bit(helper.counter)
                     && helper.counter > 0
-                    && layout.get_bit(helper.counter - 1) == 0 {
+                    && !layout.get_bit(helper.counter - 1) {
                     helper.num_rects += 1;
 
                     row_parts =
@@ -480,9 +466,9 @@ mod Dungeons {
                             helper.pixel,
                             self.colors.read(dungeon.environment * 4 + 1)
                         );
-                } else if layout.get_bit(helper.counter) == 0
+                } else if !layout.get_bit(helper.counter)
                     && helper.counter > 0
-                    && layout.get_bit(helper.counter - 1) == 1 {
+                    && layout.get_bit(helper.counter - 1) {
                     helper.last_start = helper.counter;
                 }
 
@@ -546,9 +532,9 @@ mod Dungeons {
             if i == entityData.len() {
                 break;
             }
-            let x: u256 = helper.start + (*x.at(i) % dungeon.size).into() * helper.pixel;
-            let y: u256 = helper.start + (*y.at(i)).into() * helper.pixel;
-            let color_index: u8 = dungeon.environment * 4 + 2 + *entityData.at(i);
+            let x = helper.start + (*x[i] % dungeon.size).into() * helper.pixel;
+            let y = helper.start + (*y[i]).into() * helper.pixel;
+            let color_index: u8 = dungeon.environment * 4 + 2 + *entityData[i];
             let color: felt252 = self.colors.read(color_index);
             parts = draw_tile(parts, x, y, helper.pixel, helper.pixel, color);
 
@@ -558,7 +544,7 @@ mod Dungeons {
     }
 
     fn draw_tile(
-        row: Array<felt252>, x: u256, y: u256, width: u256, pixel: u256, color: felt252
+        row: Array<felt252>, x: u128, y: u128, width: u128, pixel: u128, color: felt252
     ) -> Array<felt252> {
         let mut tile: Array<felt252> = row;
         tile.append('<rect x="');
@@ -576,14 +562,14 @@ mod Dungeons {
         tile
     }
 
-    fn get_width(size: u8) -> (u256, u256) {
-        let size: u256 = size.into();
-        let pixel: u256 = 500 / (size + 3 * 2);
-        let start: u256 = (500 - pixel * size) / 2;
+    fn get_width(size: u8) -> (u128, u128) {
+        let size = size.into();
+        let pixel = 500 / (size + 3 * 2);
+        let start = (500 - pixel * size) / 2;
         (start, pixel)
     }
 
-    fn count_length(parts: Span<felt252>) -> u256 {
+    fn count_length(parts: Span<felt252>) -> u128 {
         let limit = parts.len();
         let mut length = 0;
         let mut count = 0;

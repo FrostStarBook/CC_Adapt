@@ -330,6 +330,24 @@ fn generate_entities(seed: u256, size: u128) -> (Pack, Pack) {
     }
 }
 
+fn count_entities(entities_data: Span<u8>) -> (u8, u8) {
+    let mut points = 0;
+    let mut doors = 0;
+    let mut len = entities_data.len();
+    loop {
+        if len == 0 {
+            break;
+        }
+        if *entities_data[len - 1] == 0_u8 {
+            points += 1;
+        } else {
+            doors += 1;
+        }
+        len -= 1;
+    };
+    (points, doors)
+}
+
 fn generate_new_room(ref settings: Settings, room_settings: @RoomSettings) -> Room {
     let min_room_size = *room_settings.min_room_size;
     let max_room_size = *room_settings.max_room_size;

@@ -128,65 +128,47 @@ mod Dungeons {
 
     // ------------------------------------------- Dungeon -------------------------------------------
 
-    use debug::PrintTrait;
-    #[test]
-    #[ignore]
-    #[available_gas(300000000000000)]
-    fn testttt(ref self: ContractState) {
-        let mut arr: Array<felt252> = test_get_svg(
-            @self, 16772645511620572011242182619322577209867141853425554145531060544876510317028
-        );
-        let mut l = arr.len();
-        loop {
-            if l == 0 {
-                break;
-            }
-            // arr.pop_front().unwrap().print();
-            l -= 1;
-        }
-    }
+    // #[external(v0)]
+    // fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
+    //     draw(self, test_generate_dungeon(self, seed))
+    // }
 
-    #[external(v0)]
-    fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
-        draw(self, test_generate_dungeon(self, seed))
-    }
+    // #[external(v0)]
+    // fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
+    //     get_layout(self, seed, get_size(seed))
+    // }
 
-    #[external(v0)]
-    fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
-        get_layout(self, seed, get_size(seed))
-    }
+    // #[external(v0)]
+    // fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+    //     get_name(self, seed)
+    // }
 
-    #[external(v0)]
-    fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
-        get_name(self, seed)
-    }
+    // #[external(v0)]
+    // fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
+    //     generator::get_entities(seed, get_size(seed))
+    // }
 
-    #[external(v0)]
-    fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
-        generator::get_entities(seed, get_size(seed))
-    }
+    // #[external(v0)]
+    // fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
+    //     let size = get_size(seed);
 
-    #[external(v0)]
-    fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
-        let size = get_size(seed);
+    //     let (x_array, y_array, t_array) = generator::get_entities(seed, size);
+    //     let (mut layout, structure) = get_layout(self, seed, size);
+    //     let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 
-        let (x_array, y_array, t_array) = generator::get_entities(seed, size);
-        let (mut layout, structure) = get_layout(self, seed, size);
-        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
-
-        DungeonSerde {
-            size: size.try_into().unwrap(),
-            environment: get_environment(seed),
-            structure: structure,
-            legendary: legendary,
-            layout: layout,
-            entities: EntityData {
-                x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
-            },
-            affinity: affinity,
-            dungeon_name: dungeon_name.span()
-        }
-    }
+    //     DungeonSerde {
+    //         size: size.try_into().unwrap(),
+    //         environment: get_environment(seed),
+    //         structure: structure,
+    //         legendary: legendary,
+    //         layout: layout,
+    //         entities: EntityData {
+    //             x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
+    //         },
+    //         affinity: affinity,
+    //         dungeon_name: dungeon_name.span()
+    //     }
+    // }
 
     #[external(v0)]
     fn mint(ref self: ContractState) -> u128 {
@@ -206,16 +188,26 @@ mod Dungeons {
 
     #[external(v0)]
     fn get_seeds(self: @ContractState, token_id: u128) -> u256 {
+        is_valid(self, token_id.into());
         self.seeds.read(token_id)
     }
 
     #[external(v0)]
+    fn token_URI_not_work_yet(self: @ContractState, token_id: u128) -> Span<felt252> {
+        is_valid(self, token_id.into());
+        let dungeon = generate_dungeon(self, token_id);
+        render_token_URI(self, token_id.into(), dungeon).span()
+    }
+
+    #[external(v0)]
     fn get_svg(self: @ContractState, token_id: u128) -> Array<felt252> {
+        is_valid(self, token_id.into());
         draw(self, generate_dungeon(self, token_id))
     }
 
     #[external(v0)]
     fn generate_dungeon(self: @ContractState, token_id: u128) -> DungeonSerde {
+        is_valid(self, token_id.into());
         let seed: u256 = self.seeds.read(token_id);
         let size = get_size(seed);
 
@@ -623,72 +615,74 @@ mod Dungeons {
         }
     }
 
-    // TODO
-    // fn tokenURI(
-    //     self: @ContractState, tokenId: u256, dungeon: Dungeon, entities: EntityData
-    // ) -> Array<felt252> {
-    //     // Generate dungeon
-    //     let mut output = draw(self, dungeon.clone());
 
-    //     // Base64 Encode svg and output
-    //     let mut json: Array<felt252> = ArrayTrait::new();
-    //     json.append('{"name": "Crypts and Caverns #');
-    //     json.append(tokenId.try_into().unwrap());
-    //     json.append('", "description": "Crypts and ');
-    //     json.append('Caverns is an onchain map ');
-    //     json.append('generator that produces an ');
-    //     json.append('infinite set of dungeons. ');
-    //     json.append('Enemies, treasure, etc ');
-    //     json.append('intentionally omitted for');
-    //     json.append(' others to interpret. ');
-    //     json.append('Feel free to use Crypts and ');
-    //     json.append('Caverns in any way you want."');
-    //     json.append(', "attributes": [ {');
-    //     json.append('"trait_type": "name", ');
-    //     json.append('"value": "');
-    //     // json.append(dungeon.dungeon_name);
-    //     json.append('"}, {"trait_type": ');
-    //     json.append('"size", "value": "');
-    //     json.append(dungeon.size.into());
-    //     json.append('x');
-    //     json.append(dungeon.size.into());
-    //     json.append('"}, {"trait_type": ');
-    //     json.append('"environment", "value": "');
-    //     json.append(self.environmentName.read(dungeon.environment));
-    //     json.append('"}, {"trait_type": ');
-    //     json.append('"doors", "value": "');
-    //     // json.append(entities[1]);
-    //     json.append('"}, {"trait_type": ');
-    //     json.append('"points of interest",');
-    //     json.append(' "value": "');
-    //     // json.append(entities[0]);
-    //     json.append('"}, {"trait_type":');
-    //     json.append(' "affinity", "value": "');
-    //     json.append(dungeon.affinity);
-    //     json.append('"}, {"trait_type":');
-    //     json.append(' "legendary", "value": "');
-    //     if (dungeon.legendary == 1) {
-    //         json.append('Yes');
-    //     } else {
-    //         json.append('No');
-    //     }
-    //     if (dungeon.structure == 0) {
-    //         json.append('Crypt');
-    //     } else {
-    //         json.append('Cavern');
-    //     }
-    //     json.append('"}],"image":');
-    //     json.append(' "data:image/svg+xml;base64,');
-    //     // TODO base64 encode svg
+    fn render_token_URI(
+        self: @ContractState, tokenId: u256, dungeon: DungeonSerde
+    ) -> Array<felt252> {
+        let (points, doors) = generator::count_entities(dungeon.entities.entity_data);
 
-    //     json.append('"}');
-    //     // TODO base64 encode json
+        // Generate dungeon
+        let mut output = draw(self, dungeon);
 
-    //     output.append('data:application/json;base64,');
-    //     // output.append(json);
+        // Base64 Encode svg and output
+        let mut json: Array<felt252> = ArrayTrait::new();
+        json.append('{"name": "Crypts and Caverns #');
+        json.append(tokenId.try_into().unwrap());
+        json.append('", "description": "Crypts and ');
+        json.append('Caverns is an onchain map ');
+        json.append('generator that produces an ');
+        json.append('infinite set of dungeons. ');
+        json.append('Enemies, treasure, etc ');
+        json.append('intentionally omitted for');
+        json.append(' others to interpret. ');
+        json.append('Feel free to use Crypts and ');
+        json.append('Caverns in any way you want."');
+        json.append(', "attributes": [ {');
+        json.append('"trait_type": "name", ');
+        json.append('"value": "');
+        json = append(json, dungeon.dungeon_name);
+        json.append('"}, {"trait_type": ');
+        json.append('"size", "value": "');
+        json.append(dungeon.size.into());
+        json.append('x');
+        json.append(dungeon.size.into());
+        json.append('"}, {"trait_type": ');
+        json.append('"environment", "value": "');
+        json.append(self.environmentName.read(dungeon.environment));
+        json.append('"}, {"trait_type": ');
+        json.append('"doors", "value": "');
+        json.append(doors.into());
+        json.append('"}, {"trait_type": ');
+        json.append('"points of interest",');
+        json.append(' "value": "');
+        json.append(points.into());
+        json.append('"}, {"trait_type":');
+        json.append(' "affinity", "value": "');
+        json.append(dungeon.affinity);
+        json.append('"}, {"trait_type":');
+        json.append(' "legendary", "value": "');
+        if (dungeon.legendary == 1) {
+            json.append('Yes');
+        } else {
+            json.append('No');
+        }
+        if (dungeon.structure == 0) {
+            json.append('Crypt');
+        } else {
+            json.append('Cavern');
+        }
+        json.append('"}],"image":');
+        json.append(' "data:image/svg+xml;base64,');
+        // TODO base64 encode svg
 
-    //     output
-    // }
+        json.append('"}');
+        // TODO base64 encode json
+
+        output.append('data:application/json;base64,');
+        // output.append(json);
+
+        output
+    }
 
     // ------------------------------------------ Constructor ------------------------------------------
 

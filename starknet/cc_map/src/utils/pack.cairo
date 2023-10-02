@@ -20,17 +20,17 @@ impl PackImpl of PackTrait {
             self
                 .first = (self.first.into() | get_pow(251 - position))
                 .try_into()
-                .expect('bit overflow');
+                .expect('set bit overflow 252');
         } else if position < 504 {
             self
                 .second = (self.second.into() | get_pow(251 - position % 252))
                 .try_into()
-                .expect('bit overflow');
+                .expect('set bit overflow 504');
         } else {
             self
                 .third = (self.third.into() | get_pow(251 - position % 252))
                 .try_into()
-                .expect('bit overflow');
+                .expect('set bit overflow 625');
         }
     }
 
@@ -47,24 +47,24 @@ impl PackImpl of PackTrait {
 
     fn add_bit(ref self: Pack, other: Pack) {
         let mut result: u256 = self.first.into() | other.first.into();
-        self.first = result.try_into().expect('bit overflow');
+        self.first = result.try_into().expect('add bit overflow');
 
         result = self.second.into() | other.second.into();
-        self.second = result.try_into().expect('bit overflow');
+        self.second = result.try_into().expect('add bit overflow');
 
         result = self.third.into() | other.third.into();
-        self.third = result.try_into().expect('bit overflow');
+        self.third = result.try_into().expect('add bit overflow');
     }
 
     fn subtract_bit(ref self: Pack, other: Pack) {
         let mut result: u256 = self.first.into() & ~other.first.into();
-        self.first = result.try_into().expect('bit overflow');
+        self.first = result.try_into().expect('sub bit overflow');
 
         result = self.second.into() & ~other.second.into();
-        self.second = result.try_into().expect('bit overflow');
+        self.second = result.try_into().expect('sub bit overflow');
 
         result = self.third.into() & ~other.third.into();
-        self.third = result.try_into().expect('bit overflow');
+        self.third = result.try_into().expect('sub bit overflow');
     }
 
     fn count_bit(ref self: Pack) -> u128 {

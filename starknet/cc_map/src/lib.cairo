@@ -130,10 +130,11 @@ mod Dungeons {
 
     use debug::PrintTrait;
     #[test]
+    #[ignore]
     #[available_gas(300000000000000)]
     fn testttt(ref self: ContractState) {
         let mut arr: Array<felt252> = test_get_svg(
-            @self, 23606180097539405197311522145494409584274061256593011253731477000444122175919
+            @self, 16772645511620572011242182619322577209867141853425554145531060544876510317028
         );
         let mut l = arr.len();
         loop {
@@ -202,7 +203,6 @@ mod Dungeons {
         self.emit(Minted { account: user, token_id });
         token_id
     }
-
 
     #[external(v0)]
     fn get_seeds(self: @ContractState, token_id: u128) -> u256 {

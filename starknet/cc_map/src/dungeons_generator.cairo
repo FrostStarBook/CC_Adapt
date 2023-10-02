@@ -236,6 +236,19 @@ fn generate_points(ref settings: Settings, ref map: Pack, probability: u128) -> 
     points
 }
 
+#[test]
+#[available_gas(3000000000)]
+fn testtt() {
+
+    // unsolved bug
+    let seed = 16772645511620572011242182619322577209867141853425554145531060544876510317028;
+    let (mut points, mut doors) = generate_entities(seed, random(seed.left_shift(4), 8, 25));
+    // parse_entities(random(seed.left_shift(4), 8, 25), ref points, ref doors);
+
+    // let u:u256 = 0x2000000000000000000000000000000000000000000000000000000000;
+    // let a:felt252 = u.try_into().unwrap();
+}
+
 fn get_entities(seed: u256, size: u128) -> (Array<u8>, Array<u8>, Array<u8>) {
     let (mut points, mut doors) = generate_entities(seed, size);
     parse_entities(size, ref points, ref doors)
@@ -262,7 +275,6 @@ fn parse_entities(
             if x.into() == size {
                 break;
             }
-
             if doors.get_bit(counter) {
                 x_arr.append(x);
                 y_arr.append(y);
@@ -274,7 +286,6 @@ fn parse_entities(
                 entity_type.append(1);
             }
             counter += 1;
-
             x += 1;
         };
         y += 1;

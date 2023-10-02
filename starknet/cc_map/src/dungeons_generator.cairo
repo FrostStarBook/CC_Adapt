@@ -236,19 +236,6 @@ fn generate_points(ref settings: Settings, ref map: Pack, probability: u128) -> 
     points
 }
 
-#[test]
-#[available_gas(3000000000)]
-fn testtt() {
-
-    // unsolved bug
-    let seed = 16772645511620572011242182619322577209867141853425554145531060544876510317028;
-    let (mut points, mut doors) = generate_entities(seed, random(seed.left_shift(4), 8, 25));
-    // parse_entities(random(seed.left_shift(4), 8, 25), ref points, ref doors);
-
-    // let u:u256 = 0x2000000000000000000000000000000000000000000000000000000000;
-    // let a:felt252 = u.try_into().unwrap();
-}
-
 fn get_entities(seed: u256, size: u128) -> (Array<u8>, Array<u8>, Array<u8>) {
     let (mut points, mut doors) = generate_entities(seed, size);
     parse_entities(size, ref points, ref doors)
@@ -387,14 +374,13 @@ fn mark_the_floor(ref floor: Pack, current: Room, size: u128) {
         if y == current.y + current.height {
             break;
         }
+
         let mut x = current.x;
         loop {
             if x == current.x + current.width {
                 break;
             }
-
             floor.set_bit(y * size + x);
-
             x += 1;
         };
         y += 1;
@@ -548,12 +534,13 @@ fn p<T, impl TPrint: PrintTrait<T>>(t: T) {
 use debug::PrintTrait;
 
 #[test]
+// #[ignore]
 #[available_gas(30000000)]
 fn test_set_bit() {
     let mut map: Pack = PackTrait::new();
     map.first = 2;
     map.set_bit(20);
-    assert(map.first == 0x8000000000000000000000000000000000000000000000000000000002, 'set bit');
+    assert(map.first == 0x800000000000000000000000000000000000000000000000000000002, 'set bit');
     assert(!map.get_bit(19), 'get bit of index 19');
     assert(map.get_bit(20), 'get bit of index 20');
     assert(map.count_bit() == 2, 'count bit');
@@ -576,6 +563,7 @@ fn test_sqr() {
 }
 
 #[test]
+// #[ignore]
 #[available_gas(300000000000000)]
 fn test_generate_room() {
     {}
@@ -584,12 +572,12 @@ fn test_generate_room() {
     let size = 20;
 
     let (mut map, mut structure) = get_layout(seed, size);
-    // print_map( map, structure);
+    // print_map(map, structure);
     assert(
         structure == 1
-            && map.first == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c146
-            && map.second == 0x2c1442c1c4781c6781c6384c6185c31cbc13c00000000000000000000000000
-            && map.third == 0x00,
+            && map.first == 0x100001c030140201f020f902089c2088661b8641e0c07e0c0e47c1e66c14
+            && map.second == 0x62c1442c1c4781c6781c6384c6185c31cbc13c000000000000000000000000
+            && map.third == 0x0,
         'cavern error'
     );
 
@@ -610,7 +598,7 @@ fn test_generate_room() {
     // print_map(map, structure);
     assert(
         structure == 0
-            && map.first == 0x0000000000000000000000000018000c0002003fbc1ffe03ef01f000f800000
+            && map.first == 0x18000c0002003fbc1ffe03ef01f000f80000
             && map.second == 0x0
             && map.third == 0x0,
         'room error'

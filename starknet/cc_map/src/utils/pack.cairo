@@ -8,27 +8,43 @@ struct Pack {
     third: felt252
 }
 
+// #[test]
+// #[available_gas(3000000)]
+// fn tttt() {
+//     let mut floor = PackTrait::new();
+//     floor.first = 0x780007800078000780007800000000000000000000000c0000;
+//     floor.second = 0x800000000000000000000000000000000000000000000000000000000000000;
+//     // floor.set_bit(253);
+//     let pow: u256 = 0x400000000000000000000000000000000000000000000000000000000000000;
+//     let result = floor.second.into() | pow;
+//     p(result);
+//     let position: u128 = 253;
+//     let count = 251 - position % 252;
+//     p(count);
+// }
+
 #[generate_trait]
 impl PackImpl of PackTrait {
+    // u256 -> felt252, u256 must <= 0x800000000000011000000000000000000000000000000000000000000000000
     fn new() -> Pack {
         Pack { first: 0, second: 0, third: 0, }
     }
 
     fn set_bit(ref self: Pack, position: u128) {
         assert(position < 625, 'invalid position');
-        if position < 252 {
+        if position < 248 {
             self
-                .first = (self.first.into() | get_pow(251 - position))
+                .first = (self.first.into() | get_pow(247 - position))
                 .try_into()
-                .expect('set bit overflow 252');
-        } else if position < 504 {
+                .expect('set bit overflow 248');
+        } else if position < 496 {
             self
-                .second = (self.second.into() | get_pow(251 - position % 252))
+                .second = (self.second.into() | get_pow(247 - position % 248))
                 .try_into()
-                .expect('set bit overflow 504');
+                .expect('set bit overflow 496');
         } else {
             self
-                .third = (self.third.into() | get_pow(251 - position % 252))
+                .third = (self.third.into() | get_pow(247 - position % 248))
                 .try_into()
                 .expect('set bit overflow 625');
         }
@@ -36,12 +52,12 @@ impl PackImpl of PackTrait {
 
     fn get_bit(ref self: Pack, position: u128) -> bool {
         assert(position < 625, 'invalid position');
-        if position < 252 {
-            self.first.into() | get_pow(251 - position) == self.first.into()
-        } else if position < 504 {
-            self.second.into() | get_pow(251 - position % 252) == self.second.into()
+        if position < 248 {
+            self.first.into() | get_pow(247 - position) == self.first.into()
+        } else if position < 496 {
+            self.second.into() | get_pow(247 - position % 248) == self.second.into()
         } else {
-            self.third.into() | get_pow(251 - position % 252) == self.third.into()
+            self.third.into() | get_pow(247 - position % 248) == self.third.into()
         }
     }
 

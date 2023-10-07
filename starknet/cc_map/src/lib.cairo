@@ -128,48 +128,49 @@ mod Dungeons {
 
     // ------------------------------------------- Dungeon -------------------------------------------
 
-    // #[external(v0)]
-    // fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
-    //     draw(self, test_generate_dungeon(self, seed))
-    // }
+    #[external(v0)]
+    fn test_get_svg(self: @ContractState, seed: u256) -> Array<felt252> {
+        draw(self, test_generate_dungeon(self, seed))
+    }
 
-    // #[external(v0)]
-    // fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
-    //     get_layout(self, seed, get_size(seed))
-    // }
+    #[external(v0)]
+    fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
+        get_layout(self, seed, get_size(self, seed))
+    }
 
-    // #[external(v0)]
-    // fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
-    //     get_name(self, seed)
-    // }
+    #[external(v0)]
+    fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+        get_name(self, seed)
+    }
 
-    // #[external(v0)]
-    // fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
-    //     generator::get_entities(seed, get_size(seed))
-    // }
+    #[external(v0)]
+    fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
+        generator::get_entities(seed, get_size(self, seed))
+    }
 
-    // #[external(v0)]
-    // fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
-    //     let size = get_size(seed);
+    #[external(v0)]
+    fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
+        let size = get_size(self, seed);
 
-    //     let (x_array, y_array, t_array) = generator::get_entities(seed, size);
-    //     let (mut layout, structure) = get_layout(self, seed, size);
-    //     let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
+        let (x_array, y_array, t_array) = generator::get_entities(seed, size);
+        let (mut layout, structure) = get_layout(self, seed, size);
+        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
 
-    //     DungeonSerde {
-    //         size: size.try_into().unwrap(),
-    //         environment: get_environment(seed),
-    //         structure: structure,
-    //         legendary: legendary,
-    //         layout: layout,
-    //         entities: EntityData {
-    //             x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
-    //         },
-    //         affinity: affinity,
-    //         dungeon_name: dungeon_name.span()
-    //     }
-    // }
+        DungeonSerde {
+            size: size.try_into().unwrap(),
+            environment: get_environment(seed),
+            structure: structure,
+            legendary: legendary,
+            layout: layout,
+            entities: EntityData {
+                x: x_array.span(), y: y_array.span(), entity_data: t_array.span()
+            },
+            affinity: affinity,
+            dungeon_name: dungeon_name.span()
+        }
+    }
 
+    // ------ ERC721 -------
     #[external(v0)]
     fn mint(ref self: ContractState) -> u128 {
         assert(self.last_mint.read() < 9000, 'Token sold out');
@@ -193,6 +194,57 @@ mod Dungeons {
     }
 
     #[external(v0)]
+    fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::balance_of(@state, account)
+    }
+
+    #[external(v0)]
+    fn safe_transfer_from(
+        self: @ContractState, from: ContractAddress, to: ContractAddress, token_id: u128
+    ) {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::safe_transfer_from(
+            ref state, from, to, token_id.into(), ArrayTrait::<felt252>::new().span()
+        );
+    }
+
+    #[external(v0)]
+    fn transfer_from(
+        self: @ContractState, from: ContractAddress, to: ContractAddress, token_id: u128
+    ) {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::transfer_from(ref state, from, to, token_id.into());
+    }
+
+    #[external(v0)]
+    fn approve(ref self: ContractState, to: ContractAddress, token_id: u128) {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::approve(ref state, to, token_id.into());
+    }
+
+    #[external(v0)]
+    fn set_approval_for_all(ref self: ContractState, operator: ContractAddress, approved: bool) {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::set_approval_for_all(ref state, operator, approved);
+    }
+
+    #[external(v0)]
+    fn get_approved(self: @ContractState, token_id: u128) -> ContractAddress {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::get_approved(@state, token_id.into())
+    }
+
+    #[external(v0)]
+    fn is_approved_for_all(
+        self: @ContractState, owner: ContractAddress, operator: ContractAddress
+    ) -> bool {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::ERC721Impl::is_approved_for_all(@state, owner, operator)
+    }
+
+    // ------ Dungeon -------
+    #[external(v0)]
     fn get_seeds(self: @ContractState, token_id: u128) -> u256 {
         is_valid(self, token_id.into());
         self.seeds.read(token_id)
@@ -215,7 +267,7 @@ mod Dungeons {
     fn generate_dungeon(self: @ContractState, token_id: u128) -> DungeonSerde {
         is_valid(self, token_id.into());
         let seed: u256 = self.seeds.read(token_id);
-        let size = get_size(seed);
+        let size = get_size(self, seed);
 
         let (x_array, y_array, t_array) = generator::get_entities(seed, size);
         let (mut layout, structure) = get_layout(self, seed, size);
@@ -235,16 +287,18 @@ mod Dungeons {
         }
     }
 
+    #[external(v0)]
     fn get_entities(self: @ContractState, token_id: u128) -> EntityData {
         // 'get_entities'.print();
         // is_valid(self, token_id);
 
         let seed = self.seeds.read(token_id);
-        let (x_array, y_array, t_array) = generator::get_entities(seed, get_size(seed));
+        let (x_array, y_array, t_array) = generator::get_entities(seed, get_size(self, seed));
 
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
 
+    #[external(v0)]
     fn get_layout(self: @ContractState, seed: u256, size: u128) -> (Pack, u8) {
         // 'get_layout'.print();
         // is_valid(self, token_id);
@@ -270,7 +324,8 @@ mod Dungeons {
         seed
     }
 
-    fn get_size(seed: u256) -> u128 {
+    #[external(v0)]
+    fn get_size(self: @ContractState, seed: u256) -> u128 {
         random(seed.left_shift(4), 8, 25)
     }
 
@@ -292,6 +347,7 @@ mod Dungeons {
         }
     }
 
+    #[external(v0)]
     fn get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
         // 'get_name'.print();
         let unique_seed = random(seed.left_shift(15), 0, 10000);

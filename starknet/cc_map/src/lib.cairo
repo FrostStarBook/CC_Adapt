@@ -135,30 +135,30 @@ mod Dungeons {
 
     #[external(v0)]
     fn test_get_layout(self: @ContractState, seed: u256) -> (Pack, u8) {
-        get_layout(self, seed, get_size(self, seed))
+        get_layout(self, seed, get_size_in(self, seed))
     }
 
     #[external(v0)]
     fn test_get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
-        get_name(self, seed)
+        get_name_in(self, seed)
     }
 
     #[external(v0)]
     fn test_get_entities(self: @ContractState, seed: u256) -> (Array<u8>, Array<u8>, Array<u8>) {
-        generator::get_entities(seed, get_size(self, seed))
+        generator::get_entities(seed, get_size_in(self, seed))
     }
 
     #[external(v0)]
     fn test_generate_dungeon(self: @ContractState, seed: u256) -> DungeonSerde {
-        let size = get_size(self, seed);
+        let size = get_size_in(self, seed);
 
         let (x_array, y_array, t_array) = generator::get_entities(seed, size);
         let (mut layout, structure) = get_layout(self, seed, size);
-        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
+        let (mut dungeon_name, mut affinity, legendary) = get_name_in(self, seed);
 
         DungeonSerde {
             size: size.try_into().unwrap(),
-            environment: get_environment(seed),
+            environment: get_environment_in(self, seed),
             structure: structure,
             legendary: legendary,
             layout: layout,
@@ -267,15 +267,15 @@ mod Dungeons {
     fn generate_dungeon(self: @ContractState, token_id: u128) -> DungeonSerde {
         is_valid(self, token_id.into());
         let seed: u256 = self.seeds.read(token_id);
-        let size = get_size(self, seed);
+        let size = get_size_in(self, seed);
 
         let (x_array, y_array, t_array) = generator::get_entities(seed, size);
         let (mut layout, structure) = get_layout(self, seed, size);
-        let (mut dungeon_name, mut affinity, legendary) = get_name(self, seed);
+        let (mut dungeon_name, mut affinity, legendary) = get_name_in(self, seed);
 
         DungeonSerde {
             size: size.try_into().unwrap(),
-            environment: get_environment(seed),
+            environment: get_environment_in(self, seed),
             structure: structure,
             legendary: legendary,
             layout: layout,
@@ -293,7 +293,7 @@ mod Dungeons {
         // is_valid(self, token_id);
 
         let seed = self.seeds.read(token_id);
-        let (x_array, y_array, t_array) = generator::get_entities(seed, get_size(self, seed));
+        let (x_array, y_array, t_array) = generator::get_entities(seed, get_size_in(self, seed));
 
         EntityData { x: x_array.span(), y: y_array.span(), entity_data: t_array.span() }
     }
@@ -325,11 +325,20 @@ mod Dungeons {
     }
 
     #[external(v0)]
-    fn get_size(self: @ContractState, seed: u256) -> u128 {
+    fn get_size(self: @ContractState, token_id: u128) -> u128 {
+        get_size_in(self, get_seed(token_id))
+    }
+
+    fn get_size_in(self: @ContractState, seed: u256) -> u128 {
         random(seed.left_shift(4), 8, 25)
     }
 
-    fn get_environment(seed: u256) -> u8 {
+    #[external(v0)]
+    fn get_environment(self: @ContractState, token_id: u128) -> u8 {
+        get_environment_in(self, get_seed(token_id))
+    }
+
+    fn get_environment_in(self: @ContractState, seed: u256) -> u8 {
         let rand = random(seed.left_shift(8), 0, 100);
 
         if rand >= 70 {
@@ -347,8 +356,13 @@ mod Dungeons {
         }
     }
 
+
     #[external(v0)]
-    fn get_name(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
+    fn get_name(self: @ContractState, token_id: u128) -> (Array<felt252>, felt252, u8) {
+        get_name_in(self, get_seed(token_id))
+    }
+
+    fn get_name_in(self: @ContractState, seed: u256) -> (Array<felt252>, felt252, u8) {
         // 'get_name'.print();
         let unique_seed = random(seed.left_shift(15), 0, 10000);
 

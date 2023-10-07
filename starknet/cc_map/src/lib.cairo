@@ -187,6 +187,12 @@ mod Dungeons {
     }
 
     #[external(v0)]
+    fn owner_of(self: @ContractState, token_id: u128) -> ContractAddress {
+        let mut state = ERC721::unsafe_new_contract_state();
+        ERC721::InternalImpl::_owner_of(@state, token_id.into())
+    }
+
+    #[external(v0)]
     fn get_seeds(self: @ContractState, token_id: u128) -> u256 {
         is_valid(self, token_id.into());
         self.seeds.read(token_id)
@@ -387,7 +393,7 @@ mod Dungeons {
         parts.append(' shape-rendering="crispEdges"');
         parts.append(' transform-origin="center">');
         parts.append('<rect width="100%"');
-        parts.append('height="100%" fill="#');
+        parts.append(' height="100%" fill="#');
         parts.append(self.colors.read(dungeon.environment * 4));
         parts.append('" />');
 
